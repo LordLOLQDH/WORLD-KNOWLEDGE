@@ -75,3 +75,46 @@ grant execute on function public.world_knowledge_claim_collector_run(integer) to
 
 revoke insert, update, delete on public.world_knowledge_articles from anon, authenticated;
 revoke insert, update, delete on public.world_knowledge_collector_runs from anon, authenticated;
+
+
+-- Public AI request throttling. The raw IP is never stored; the backend stores only a SHA-256 hash.
+create table if not exists public.world_knowledge_ai_limits (
+  ip_hash text primary key,
+  last_request_at timestamptz not null default now()
+);
+alter table public.world_knowledge_ai_limits enable row level security;
+revoke all on public.world_knowledge_ai_limits from anon, authenticated;
+grant all on public.world_knowledge_ai_limits to service_role;
+
+create or replace function public.world_knowledge_claim_ai_request(
+  p_ip_hash text,
+  p_cooldown_seconds integer default 8
+) returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  claimed boolean := false;
+  safe_cooldown integer := greatest(3, least(coalesce(p_cooldown_seconds, 8), 60));
+begin
+  if p_ip_hash is null or length(p_ip_hash) < 16 then return false; end if;
+  insert into public.world_knowledge_ai_limits(ip_hash, last_request_at)
+  values (p_ip_hash, now() - make_interval(secs => safe_cooldown))
+  on conflict (ip_hash) do nothing;
+  update public.world_knowledge_ai_limits
+     set last_request_at = now()
+   where ip_hash = p_ip_hash
+     and last_request_at <= now() - make_interval(secs => safe_cooldown)
+   returning true into claimed;
+  return coalesce(claimed, false);
+end;
+$$;
+revoke all on function public.world_knowledge_claim_ai_request(text, integer) from public, anon, authenticated;
+grant execute on function public.world_knowledge_claim_ai_request(text, integer) to service_role;
+
+-- Explicit backend write permissions. Browser roles remain read-only.
+grant select, insert, update, delete on public.world_knowledge_articles to service_role;
+grant select, insert, update, delete on public.world_knowledge_collector_runs to service_role;
+grant select, insert, update, delete on public.world_knowledge_collector_state to service_role;
+grant select, insert, update, delete on public.world_knowledge_ai_limits to service_role;
