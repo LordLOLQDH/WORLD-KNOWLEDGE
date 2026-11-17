@@ -15,7 +15,7 @@
     let query;
     if(tab==="articles"){
       query=db.from("world_knowledge_articles").select("id,title,extract,source_url,source_name,collected_at,license").order("collected_at",{ascending:false});
-      if(term) query=query.or("title.ilike.%"+term+"%,extract.ilike.%"+term+"%");
+      if(term) query=query.textSearch("search_vector",term,{type:"websearch",config:"german"});
     }else{
       query=db.from("world_knowledge_queries").select("id,question,answer,ai_status,origin,source_articles,created_at").order("created_at",{ascending:false});
       if(term) query=query.ilike("question","%"+term+"%");
