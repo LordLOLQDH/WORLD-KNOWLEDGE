@@ -237,8 +237,10 @@ Deno.serve(async (req: Request) => {
         .upsert(rows, { onConflict: "source_url" }).select("id");
       if (error) throw error;
       saved = data?.length ?? rows.length;
+      const { data: state } = await admin.from("world_knowledge_collector_state")
+        .select("total_saved").eq("id", true).single();
       await admin.from("world_knowledge_collector_state")
-        .update({ total_saved: saved }).eq("id", true);
+        .update({ total_saved: Number(state?.total_saved || 0) + saved }).eq("id", true);
     }
     const finishedAt = new Date().toISOString();
     await admin.from("world_knowledge_collector_runs").update({
