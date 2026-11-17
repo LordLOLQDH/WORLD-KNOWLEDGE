@@ -98,7 +98,6 @@ Deno.serve(async (req: Request) => {
       message: rows.length ? "Wikipedia-Einleitungen importiert." : "Keine geeigneten Einträge in diesem Lauf gefunden.",
       finished_at: new Date().toISOString(),
     }).eq("id", run.id);
-    await admin.rpc("world_knowledge_add_saved_count", { p_saved: saved });
 
     return json({ status: "completed", saved, source: "Wikipedia DE" });
   } catch (error) {
