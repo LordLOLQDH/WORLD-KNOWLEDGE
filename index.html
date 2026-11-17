@@ -23,20 +23,26 @@
       <a href="#sammlung">Sammlung</a>
       <a href="#system">System</a>
     </nav>
-    <span class="version">v0.1.0</span>
+    <span class="version">v0.2.0</span>
   </header>
 
   <main>
-    <section class="hero">
+    <section class="hero" id="suche">
       <div class="eyebrow"><span class="pulse"></span> OFFENE WISSENSINFRASTRUKTUR</div>
       <h1>Wissen sammeln.<br><span>Für alle zugänglich.</span></h1>
-      <p class="hero-copy">Eine wachsende, durchsuchbare Wissenssammlung aus offenen und nachvollziehbaren Quellen. Wir beginnen mit Wikipedia.</p>
+      <p class="hero-copy">Eine wachsende, durchsuchbare Wissenssammlung aus offenen und nachvollziehbaren Quellen. WORLD KNOWLEDGE durchsucht zuerst das eigene Archiv und ergänzt fehlendes Wissen automatisch aus Wikipedia.</p>
       <form id="search-form" class="search-box" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg>
         <input id="search-input" type="search" placeholder="Wonach möchtest du suchen?" autocomplete="off" aria-label="Wissen durchsuchen">
-        <button type="submit">Suchen</button>
+        <button id="search-submit" type="submit">Suchen</button>
       </form>
-      <div class="search-hint">Durchsuche die bereits gespeicherten Wissenseinträge.</div>
+      <div class="search-hint">Archiv zuerst. Wenn nichts gespeichert ist, sucht WORLD KNOWLEDGE in Wikipedia und speichert passende Einträge.</div>
+    </section>
+
+    <section class="ai-result hidden" id="ai-result" aria-live="polite">
+      <div class="ai-result-head"><span class="ai-label">WORLD KNOWLEDGE AI</span><span id="ai-source"></span></div>
+      <p id="ai-answer-text"></p>
+      <div class="ai-result-note" id="ai-answer-note">KI-Antwort anhand der gespeicherten Quellen</div>
     </section>
 
     <section class="stats-grid" aria-label="Sammlungsstatistik">
@@ -61,7 +67,7 @@
       <div class="collector-copy">
         <div class="eyebrow">AUTOMATISCHE DATENSAMMLUNG</div>
         <h2>Die Sammlung wächst mit der Nutzung.</h2>
-        <p>Wenn jemand die Website besucht, kann ein begrenzter Sammellauf gestartet werden. Der Server lädt einige neue Wikipedia-Einleitungen und speichert sie. Ein globaler Schutz verhindert, dass viele Besucher gleichzeitig unnötige Importe auslösen.</p>
+        <p>Bei einem Website-Besuch kann ein begrenzter Sammellauf starten. Der Server importiert einige zufällige Wikipedia-Einleitungen. Ein globaler Schutz verhindert parallele Importe. Bei einer Suche werden fehlende Themen gezielt nachgeladen und gespeichert.</p>
         <div class="collector-status"><span class="status-dot" id="status-dot"></span><span id="collector-status">Verbindung wird geprüft …</span></div>
       </div>
       <button id="collect-button" class="primary-button" type="button">Sammlung fortsetzen</button>
@@ -69,14 +75,14 @@
 
     <section class="notice">
       <strong>Transparenz &amp; Quellen</strong>
-      <p>Gespeicherte Wikipedia-Texte werden mit Originalquelle und Lizenzhinweis angezeigt. Diese erste Version speichert kurze Einleitungen, nicht vollständige Wikipedia-Artikel. Inhalte können unvollständig oder veraltet sein.</p>
+      <p>Gespeicherte Wikipedia-Texte werden mit Originalquelle und Lizenzhinweis angezeigt. Diese Version speichert kurze Einleitungen, nicht vollständige Wikipedia-Artikel. KI-Antworten werden mit Groq anhand der angezeigten Quellen erstellt. Inhalte können unvollständig oder veraltet sein.</p>
     </section>
   </main>
 
   <footer>
     <a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a>
     <span>Offenes Wissen. Nachvollziehbare Quellen.</span>
-    <span>Version 0.1.0</span>
+    <span>Version 0.2.0</span>
   </footer>
 </body>
 </html>
