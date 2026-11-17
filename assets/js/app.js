@@ -36,7 +36,7 @@
   }
   async function loadArticles(searchTerm = "", append = false) {
     if (!client) return;
-    let query = client.from("articles").select("id,title,extract,source_url,collected_at").order("collected_at", {ascending:false});
+    let query = client.from("world_knowledge_articles").select("id,title,extract,source_url,collected_at").order("collected_at", {ascending:false});
     if (searchTerm) query = query.textSearch("search_vector", searchTerm, {type:"websearch", config:"german"});
     const from = append ? currentOffset : 0;
     const {data, error} = await query.range(from, from + PAGE_SIZE - 1);
@@ -53,8 +53,8 @@
   async function loadStats() {
     if (!client) return;
     const [{count}, {data}] = await Promise.all([
-      client.from("articles").select("*", {count:"exact",head:true}),
-      client.from("collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
+      client.from("world_knowledge_articles").select("*", {count:"exact",head:true}),
+      client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
     ]);
     $("article-count").textContent = Number(count || 0).toLocaleString("de-DE");
     $("last-run").textContent = data && data[0] ? dateLabel(data[0].finished_at) : "Noch nicht";
