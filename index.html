@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f9fc">
+  <meta name="description" content="WORLD KNOWLEDGE sammelt und erschließt frei zugängliches Wissen.">
+  <title>WORLD KNOWLEDGE – Offenes Wissen</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/config.js" defer></script>
+  <script src="assets/js/app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="WORLD KNOWLEDGE Startseite">
+      <span class="brand-mark">W</span>
+      <span>WORLD <strong>KNOWLEDGE</strong></span>
+    </a>
+    <nav class="nav">
+      <a class="active" href="#suche">Wissen suchen</a>
+      <a href="#sammlung">Sammlung</a>
+      <a href="#system">System</a>
+    </nav>
+    <span class="version">v0.1.0</span>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow"><span class="pulse"></span> OFFENE WISSENSINFRASTRUKTUR</div>
+      <h1>Wissen sammeln.<br><span>Für alle zugänglich.</span></h1>
+      <p class="hero-copy">Eine wachsende, durchsuchbare Wissenssammlung aus offenen und nachvollziehbaren Quellen. Wir beginnen mit Wikipedia.</p>
+      <form id="search-form" class="search-box" role="search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg>
+        <input id="search-input" type="search" placeholder="Wonach möchtest du suchen?" autocomplete="off" aria-label="Wissen durchsuchen">
+        <button type="submit">Suchen</button>
+      </form>
+      <div class="search-hint">Durchsuche die bereits gespeicherten Wissenseinträge.</div>
+    </section>
+
+    <section class="stats-grid" aria-label="Sammlungsstatistik">
+      <article class="stat-card"><span class="stat-label">Gespeicherte Artikel</span><strong id="article-count">–</strong><span class="stat-note">In der Wissensdatenbank</span></article>
+      <article class="stat-card"><span class="stat-label">Wissensquellen</span><strong id="source-count">1</strong><span class="stat-note">Wikipedia DE zum Start</span></article>
+      <article class="stat-card"><span class="stat-label">Letzte Sammlung</span><strong id="last-run">–</strong><span class="stat-note">Letzter erfolgreicher Import</span></article>
+    </section>
+
+    <section class="content-section" id="sammlung">
+      <div class="section-heading">
+        <div><div class="eyebrow">WISSENSARCHIV</div><h2 id="results-heading">Zuletzt gesammeltes Wissen</h2></div>
+        <span class="section-meta" id="result-count">Aktuelle Einträge</span>
+      </div>
+      <div id="articles" class="article-grid">
+        <div class="empty-state"><div class="loader"></div><p>Wissensdatenbank wird geladen …</p></div>
+      </div>
+      <button id="load-more" class="secondary-button hidden" type="button">Weitere Artikel anzeigen</button>
+    </section>
+
+    <section class="collector-panel" id="system">
+      <div class="collector-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"></path><circle cx="12" cy="12" r="4"></circle></svg></div>
+      <div class="collector-copy">
+        <div class="eyebrow">AUTOMATISCHE DATENSAMMLUNG</div>
+        <h2>Die Sammlung wächst mit der Nutzung.</h2>
+        <p>Wenn jemand die Website besucht, kann ein begrenzter Sammellauf gestartet werden. Der Server lädt einige neue Wikipedia-Einleitungen und speichert sie. Ein globaler Schutz verhindert, dass viele Besucher gleichzeitig unnötige Importe auslösen.</p>
+        <div class="collector-status"><span class="status-dot" id="status-dot"></span><span id="collector-status">Verbindung wird geprüft …</span></div>
+      </div>
+      <button id="collect-button" class="primary-button" type="button">Sammlung fortsetzen</button>
+    </section>
+
+    <section class="notice">
+      <strong>Transparenz &amp; Quellen</strong>
+      <p>Gespeicherte Wikipedia-Texte werden mit Originalquelle und Lizenzhinweis angezeigt. Diese erste Version speichert kurze Einleitungen, nicht vollständige Wikipedia-Artikel. Inhalte können unvollständig oder veraltet sein.</p>
+    </section>
+  </main>
+
+  <footer>
+    <a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a>
+    <span>Offenes Wissen. Nachvollziehbare Quellen.</span>
+    <span>Version 0.1.0</span>
+  </footer>
+</body>
+</html>
