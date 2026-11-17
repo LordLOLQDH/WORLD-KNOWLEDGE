@@ -103,21 +103,24 @@
       $("search-submit").textContent = "Fragen";
     }
   }
-  function scheduleCollector() {
+  function scheduleCollector(delay = COLLECTOR_INTERVAL) {
     clearTimeout(collectorTimer);
     if(document.visibilityState !== "visible") return;
-    collectorTimer = setTimeout(() => runCollector(false), COLLECTOR_INTERVAL);
+    collectorTimer = setTimeout(() => runCollector(false), delay);
   }
   async function runCollector(manual = false) {
     if(!client || collectorRunning || document.visibilityState !== "visible") return;
     collectorRunning = true;
     if(manual) $("collect-button").disabled = true;
     setStatus("Wissenssammlung läuft …","busy");
+    let nextDelay = COLLECTOR_INTERVAL;
     try {
       const {data,error} = await client.functions.invoke("world-knowledge-collector",{body:{action:"collect"}});
       if(error) throw new Error(await errorMessage(error));
       if(data?.status === "cooldown") {
-        setStatus("Ein anderer Besucher sammelt gerade. Der nächste Versuch folgt automatisch.","online");
+        const seconds = Math.max(1, Number(data.retry_after_seconds || 90));
+        nextDelay = seconds * 1000 + 1500;
+        setStatus("Der letzte Sammellauf liegt erst kurz zurück. Neuer Versuch in etwa " + seconds + " Sekunden.","online");
       } else if(data?.status === "completed") {
         setStatus((data.saved || 0) + " Einträge verarbeitet. Sammlung läuft weiter.","online");
         await loadStats();
@@ -129,7 +132,7 @@
     } finally {
       collectorRunning = false;
       if(manual) $("collect-button").disabled = false;
-      scheduleCollector();
+      scheduleCollector(nextDelay);
     }
   }
 
