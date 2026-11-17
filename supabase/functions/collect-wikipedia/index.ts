@@ -178,6 +178,20 @@ Deno.serve(async (req: Request) => {
       const ai = groqKey
         ? await groqAnswer(queryText, articles, groqKey, ipHash, admin)
         : { answer: null, ai_status: "groq_key_missing" };
+
+      // Persist every submitted question and its generated answer in the archive.
+      const { error: archiveError } = await admin.from("world_knowledge_queries").insert({
+        question: queryText,
+        answer: ai.answer,
+        ai_status: ai.ai_status,
+        origin,
+        source_articles: articles.slice(0, 5).map((article: any) => ({
+          title: article.title,
+          source_url: article.source_url,
+        })),
+      });
+      if (archiveError) console.error("Question archive insert failed:", archiveError.message);
+
       return json({
         status: "completed", query: queryText, origin, saved, articles,
         answer: ai.answer, ai_status: ai.ai_status, model: ai.model || null,
