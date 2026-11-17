@@ -1,41 +1,51 @@
 # WORLD KNOWLEDGE
 
-Öffentliches Wissensarchiv mit automatischer Erweiterung durch Wikipedia und KI-gestützten Antworten. Die Website ist öffentlich; Besucher benötigen kein Konto.
+Öffentliche Wissensplattform mit durchsuchbarem Archiv, automatischem Wikipedia-Import und KI-gestützten Antworten.
 
-## Backend
+## Hosting und Backend
 
-WORLD KNOWLEDGE verwendet das bestehende Supabase-Projekt **KDS-AI-v1**. Alle Datenbankobjekte tragen den Präfix `world_knowledge_`, damit andere Projekte und KDS-AI-Daten unberührt bleiben.
+- Frontend: GitHub Pages
+- Datenbank und Edge Function: bestehendes Supabase-Projekt KDS-AI-v1
+- KI: Groq API, serverseitig über \`GROQ_API_KEY\`
+- Browser-Zugang: öffentlich, kein Login erforderlich
+- Alle Datenbankobjekte sind mit \`world_knowledge_\` präfixiert, damit andere KDS-AI-Daten unberührt bleiben.
 
-- Tabellen: `world_knowledge_articles`, `world_knowledge_collector_runs`, `world_knowledge_collector_state`, `world_knowledge_ai_limits`
-- Edge Function: `world-knowledge-collector`
-- Frontend: GitHub Pages, `assets/js/app.js`
-- Öffentlicher Browser-Key: Supabase Publishable Key
-- Supabase Secret Key und `GROQ_API_KEY`: ausschließlich als serverseitige Supabase-Umgebungsvariablen, niemals im Browser oder Repository.
+## Funktionen
 
-Die Funktion unterstützt die neuen Supabase-Umgebungsvariablen `SUPABASE_SECRET_KEYS` sowie den älteren `SUPABASE_SERVICE_ROLE_KEY`.
+- Nutzer können Fragen und vollständige Sätze eingeben.
+- Zuerst wird das eigene Archiv mit deutscher Volltextsuche durchsucht.
+- Wenn keine gespeicherten Treffer existieren, wird die deutschsprachige Wikipedia-Suche verwendet.
+- Bis zu fünf passende Einleitungen werden gespeichert und als Quellen zurückgegeben.
+- Groq beantwortet Fragen anhand der verfügbaren Quellen.
+- KI-Antworten und die zugehörigen Fragen werden dauerhaft in \`world_knowledge_queries\` archiviert.
+- Gesammelte Artikel liegen in \`world_knowledge_articles\` und werden auf einer eigenen Seite \`archive.html\` angezeigt.
+- KI-Antworten werden mit Marked gerendert und anschließend mit DOMPurify bereinigt. Unterstützt werden Fettdruck, Überschriften, Listen, Links, Code und Tabellen.
+- Während die Startseite sichtbar und aktiv ist, fragt der Browser automatisch etwa alle 95 Sekunden einen neuen Sammellauf an. Der globale Datenbank-Lock verhindert parallele Importe. Ein Lauf sammelt bis zu fünf zufällige Wikipedia-Einleitungen.
 
-## Suche und KI
+## Tabellen
 
-1. Bei einer Suche wird zuerst die Volltextsuche des gespeicherten Archivs verwendet.
-2. Gibt es keinen Treffer, wird die deutschsprachige Wikipedia-Suche aufgerufen.
-3. Bis zu fünf passende Wikipedia-Einleitungen werden mit URL und Lizenzangabe gespeichert.
-4. Groq erstellt anschließend eine deutschsprachige Antwort auf Basis der angezeigten Quellen.
+- \`world_knowledge_articles\`: gespeicherte Wissensartikel
+- \`world_knowledge_queries\`: Fragen, KI-Antworten und Quellenverweise
+- \`world_knowledge_collector_runs\`: Protokoll der Sammelläufe
+- \`world_knowledge_collector_state\`: globaler Sammelstatus
+- \`world_knowledge_ai_limits\`: gehashte IP-Werte für KI-Anfragebegrenzung
 
-Verwendetes Groq-Modell: `openai/gpt-oss-20b`. Die KI-Antwort wird serverseitig erzeugt. Der API-Schlüssel bleibt in Supabase. Pro IP-Adresse gilt ein kurzer KI-Anfrageabstand als Schutz vor Missbrauch. Groq-Nutzung unterliegt den aktuellen Kontingenten und Preisen des Groq-Kontos.
+## Edge Function
 
-## Automatische Sammlung
+\`world-knowledge-collector\` unterstützt:
+- \`action: "collect"\`: zufällige Wikipedia-Einleitungen importieren
+- \`action: "search"\`: Archivsuche, Wikipedia-Fallback, Groq-Antwort und Archivierung der Frage
 
-Ein Website-Besuch kann einen Sammellauf auslösen. Pro Lauf werden höchstens fünf zufällige Wikipedia-Einleitungen importiert. Eine globale Sperre begrenzt die Frequenz auf einen Lauf pro 90 Sekunden. Wenn niemand die Website besucht, pausiert die Sammlung. Das ist kein dauerhaft laufender Hintergrundprozess.
+Supabase Secret Key und \`GROQ_API_KEY\` bleiben ausschließlich auf dem Server. Der Browser enthält nur die öffentliche Supabase Publishable Key.
 
-Wikipedia-Inhalte stehen unter CC BY-SA 4.0. Jeder gespeicherte Artikel enthält Quelllink und Lizenzangabe. Bei Weiterverwendung müssen Namensnennung und Lizenzbedingungen eingehalten werden.
+## Kontinuierliche Sammlung: Grenzen
 
-## Sicherheit und Kosten
+Der Sammler läuft nicht als unbegrenzter Hintergrundprozess. Er wiederholt Aufrufe, solange die Website geöffnet und sichtbar ist. Browser können Tabs im Hintergrund, bei gesperrtem Bildschirm oder bei Energiesparmodi pausieren. Wird die Website geschlossen, stoppt die Sammlung. Der globale Mindestabstand beträgt 90 Sekunden. Das schützt die kostenlosen Kontingente und verhindert parallele Läufe.
 
-- Browser-Rollen dürfen Artikel und Laufprotokolle nur lesen.
-- Schreibzugriffe laufen ausschließlich serverseitig über den Supabase Secret Key.
-- Der Groq-Schlüssel wird nicht an Besucher ausgeliefert.
-- Supabase-, GitHub- und Groq-Kontingente gelten weiterhin. Kostenfreiheit und unbegrenzte Nutzung werden nicht garantiert.
+## Quellen und Lizenz
 
-## Projektstand
+Wikipedia-Einleitungen werden mit Original-URL und CC BY-SA 4.0-Hinweis gespeichert. Bei Weiterverwendung müssen Lizenz und Namensnennung beachtet werden.
 
-Version 0.2: öffentliche Suche, Wikipedia-Fallback mit automatischem Speichern, Groq-Antworten und manuell/bei Besuch startbare Sammlung.
+## Kosten und Limits
+
+Die Architektur nutzt kostenlose Hosting- und Datenbankkontingente, soweit verfügbar. Supabase- und Groq-Limits gelten. Unbegrenzte kostenlose Nutzung kann nicht zugesichert werden.
