@@ -1,2 +1,2 @@
-[functions.collect-wikipedia]
+[functions.world-knowledge-collector]
 verify_jwt = false
