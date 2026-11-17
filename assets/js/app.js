@@ -65,7 +65,7 @@
     $("collect-button").textContent = "Sammle Wissen …";
     setStatus("Prüfe, ob ein Sammellauf möglich ist …", "busy");
     try {
-      const {data, error} = await client.functions.invoke("collect-wikipedia", {body:{source:"wikipedia-de"}});
+      const {data, error} = await client.functions.invoke("world-knowledge-collector", {body:{source:"wikipedia-de"}});
       if (error) throw error;
       if (data && data.status === "cooldown") {
         setStatus("Die Sammlung wurde gerade erst aktualisiert. Der nächste Lauf folgt später.", "online");
