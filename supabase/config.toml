@@ -1,0 +1,2 @@
+[functions.collect-wikipedia]
+verify_jwt = false
