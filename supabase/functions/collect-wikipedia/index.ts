@@ -87,10 +87,6 @@ export default {
         finished_at: new Date().toISOString(),
       }).eq("id", run.id);
 
-      await ctx.supabaseAdmin.from("collector_state").update({
-        total_saved: (await ctx.supabaseAdmin.from("collector_state").select("total_saved").eq("id", true).maybeSingle()).data?.total_saved ?? 0,
-      }).eq("id", true);
-
       return json({ status: "completed", saved, source: "Wikipedia DE" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unbekannter Fehler";
