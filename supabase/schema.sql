@@ -118,3 +118,26 @@ grant select, insert, update, delete on public.world_knowledge_articles to servi
 grant select, insert, update, delete on public.world_knowledge_collector_runs to service_role;
 grant select, insert, update, delete on public.world_knowledge_collector_state to service_role;
 grant select, insert, update, delete on public.world_knowledge_ai_limits to service_role;
+
+
+-- Archive of user questions and generated answers. Writes are server-side only.
+create table if not exists public.world_knowledge_queries (
+  id uuid primary key default gen_random_uuid(),
+  question text not null,
+  answer text,
+  ai_status text not null default 'pending',
+  origin text not null default 'archive',
+  source_articles jsonb not null default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+create index if not exists world_knowledge_queries_created_idx
+  on public.world_knowledge_queries(created_at desc);
+create index if not exists world_knowledge_queries_question_idx
+  on public.world_knowledge_queries using gin(to_tsvector('german', question));
+alter table public.world_knowledge_queries enable row level security;
+drop policy if exists "World knowledge public query read" on public.world_knowledge_queries;
+create policy "World knowledge public query read"
+  on public.world_knowledge_queries for select to anon, authenticated using (true);
+grant select on public.world_knowledge_queries to anon, authenticated;
+grant select, insert, update, delete on public.world_knowledge_queries to service_role;
+revoke insert, update, delete on public.world_knowledge_queries from anon, authenticated;
