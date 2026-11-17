@@ -211,7 +211,19 @@ Deno.serve(async (req: Request) => {
     console.error("Collector lock failed:", claimError.message);
     return json({ status: "error", code: "COLLECTOR_LOCK_FAILED", message: "Sammelsperre konnte nicht geprüft werden." }, 500);
   }
-  if (!claimed) return json({ status: "cooldown", message: "Ein Sammellauf wurde kürzlich gestartet." });
+  if (!claimed) {
+    const { data: state } = await admin.from("world_knowledge_collector_state")
+      .select("last_started_at").eq("id", true).single();
+    const elapsed = state?.last_started_at
+      ? (Date.now() - new Date(state.last_started_at).getTime()) / 1000
+      : 0;
+    const retryAfterSeconds = Math.max(1, Math.ceil(90 - elapsed));
+    return json({
+      status: "cooldown",
+      retry_after_seconds: retryAfterSeconds,
+      message: "Der letzte Sammellauf liegt noch innerhalb der globalen 90-Sekunden-Pause.",
+    });
+  }
 
   const { data: run, error: runError } = await admin
     .from("world_knowledge_collector_runs")
