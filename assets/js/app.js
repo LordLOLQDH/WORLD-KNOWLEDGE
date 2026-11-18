@@ -70,13 +70,11 @@
   }
   async function loadStats() {
     if (!client) return;
-    const [{count:articles}, {count:questions}, {data:runs}] = await Promise.all([
+    const [{count:articles}, {data:runs}] = await Promise.all([
       client.from("world_knowledge_articles").select("*",{count:"exact",head:true}),
-      client.from("world_knowledge_queries").select("*",{count:"exact",head:true}),
       client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
     ]);
     $("article-count").textContent = Number(articles || 0).toLocaleString("de-DE");
-    $("question-count").textContent = Number(questions || 0).toLocaleString("de-DE");
     $("last-run").textContent = runs && runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
   }
   async function runSearch(term) {
