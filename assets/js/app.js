@@ -7,7 +7,7 @@
   let collectorTimer = null;
   let collectorRunning = false;
   let continuousMode = false;
-  const COLLECTOR_INTERVAL = 12000;
+  const COLLECTOR_INTERVAL = 0;
 
   function setStatus(message, state = "") {
     $("collector-status").textContent = message;
@@ -120,10 +120,10 @@
       if(error) throw new Error(await errorMessage(error));
       if(data?.status === "cooldown") {
         const seconds = Math.max(1, Number(data.retry_after_seconds || 10));
-        nextDelay = seconds * 1000 + 1500;
-        setStatus("Kurze technische Pause. Nächster Sammelschritt in " + seconds + " Sekunden.","online");
+        nextDelay = Math.max(250, seconds * 1000);
+        setStatus("Sammelt Wissen …","busy");
       } else if(data?.status === "completed") {
-        setStatus((data.saved || 0) + " Einträge verarbeitet. Sammlung läuft weiter.","online");
+        setStatus("Sammelt Wissen …","busy");
         await loadStats();
       } else {
         throw new Error(data?.message || "Sammellauf fehlgeschlagen.");
@@ -151,7 +151,7 @@
     $("collect-button").textContent = continuousMode ? "Sammlung stoppen" : "Sammlung starten";
     $("collect-button").classList.toggle("is-running", continuousMode);
     if(continuousMode) {
-      setStatus("Dauerhafte Sammlung gestartet …","busy");
+      setStatus("Sammelt Wissen …","busy");
       runCollector(true);
     } else {
       clearTimeout(collectorTimer);
@@ -172,4 +172,5 @@
   setStatus("Verbunden. Sammlung ist bereit. Klicke auf „Sammlung starten“.","online");
   $("collect-button").textContent = "Sammlung starten";
   loadStats();
+  setInterval(() => { if(continuousMode) loadStats(); }, 2000);
 })();
