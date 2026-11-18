@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -179,18 +179,7 @@ Deno.serve(async (req: Request) => {
         ? await groqAnswer(queryText, articles, groqKey, ipHash, admin)
         : { answer: null, ai_status: "groq_key_missing" };
 
-      // Persist every submitted question and its generated answer in the archive.
-      const { error: archiveError } = await admin.from("world_knowledge_queries").insert({
-        question: queryText,
-        answer: ai.answer,
-        ai_status: ai.ai_status,
-        origin,
-        source_articles: articles.slice(0, 5).map((article: any) => ({
-          title: article.title,
-          source_url: article.source_url,
-        })),
-      });
-      if (archiveError) console.error("Question archive insert failed:", archiveError.message);
+      // User questions are processed transiently and are never stored in the knowledge archive.
 
       return json({
         status: "completed", query: queryText, origin, saved, articles,
@@ -204,74 +193,92 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action !== "collect") return json({ status: "error", message: "Unbekannte Aktion." }, 400);
-  const { data: run, error: runError } = await admin
-    .from("world_knowledge_collector_runs")
-    .insert({ source_name: "Wikipedia DE · Hochgeschwindigkeit", status: "running" })
-    .select("id").single();
-  if (runError) {
-    console.error("Run log failed:", runError.message);
-    return json({ status: "error", code: "RUN_LOG_FAILED", message: "Laufprotokoll konnte nicht angelegt werden." }, 500);
+  const topics = [["Naturwissenschaften","Naturwissenschaften"],["Physik","Physik"],["Chemie","Chemie"],["Biologie","Biologie"],["Mathematik","Mathematik"],["Informatik","Informatik"],["Technik","Technik"],["Medizin","Medizin"],["Astronomie","Astronomie"],["Geographie","Geographie"],["Geschichte","Geschichte"],["Politik","Politik"],["Wirtschaft","Wirtschaft"],["Gesellschaft","Gesellschaft"],["Philosophie","Philosophie"],["Religion","Religion"],["Kunst","Kunst"],["Musik","Musik"],["Literatur","Literatur"],["Sprache","Sprache"],["Sport","Sport"],["Umwelt","Umwelt"]];
+  const { data: topicIndex, error: topicError } = await admin.rpc("world_knowledge_next_topic");
+  if (topicError) {
+    console.error("Topic scheduler failed:", topicError.message);
+    return json({ status: "error", message: "Themenplanung nicht verfügbar." }, 500);
   }
+  const selected = topics[Number(topicIndex || 0) % topics.length];
+  const runResult = await admin.from("world_knowledge_collector_runs")
+    .insert({ source_name: "Wikipedia · " + selected[0], status: "running" })
+    .select("id").single();
+  if (runResult.error) return json({ status: "error", message: "Laufprotokoll konnte nicht angelegt werden." }, 500);
 
   try {
     const headers = {
       "Accept": "application/json",
       "User-Agent": "WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)",
     };
-    // Five independent API batches run concurrently. Each batch asks Wikipedia
-    // for up to ten random German articles, then all rows are upserted together.
-    const batches = await Promise.all(Array.from({ length: 5 }, async () => {
-      const endpoint = new URL("https://de.wikipedia.org/w/api.php");
-      endpoint.search = new URLSearchParams({
-        action: "query", generator: "random", grnnamespace: "0", grnlimit: "10",
+    const categoryTitle = "Kategorie:" + selected[1];
+    const endpoint = new URL("https://de.wikipedia.org/w/api.php");
+    endpoint.search = new URLSearchParams({
+      action: "query", list: "categorymembers", cmtitle: categoryTitle,
+      cmtype: "page", cmlimit: "50", cmnamespace: "0",
+      prop: "extracts|info", exintro: "1", explaintext: "1", inprop: "url",
+      format: "json", formatversion: "2",
+    }).toString();
+    const response = await fetch(endpoint, { headers, signal: AbortSignal.timeout(18000) });
+    if (!response.ok) throw new Error("Wikipedia API antwortete mit HTTP " + response.status);
+    const payload = await response.json();
+    let members = payload?.query?.categorymembers || [];
+    if (!members.length) {
+      const fallback = new URL("https://de.wikipedia.org/w/api.php");
+      fallback.search = new URLSearchParams({
+        action: "query", list: "search", srsearch: selected[0],
+        srnamespace: "0", srlimit: "50", format: "json", formatversion: "2",
+      }).toString();
+      const searchResponse = await fetch(fallback, { headers, signal: AbortSignal.timeout(15000) });
+      if (!searchResponse.ok) throw new Error("Wikipedia-Themensuche fehlgeschlagen.");
+      const searchData = await searchResponse.json();
+      members = searchData?.query?.search || [];
+    }
+    const ids = members.slice(0, 50).map((item: any) => String(item.pageid)).filter(Boolean);
+    let pages: any[] = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const detail = new URL("https://de.wikipedia.org/w/api.php");
+      detail.search = new URLSearchParams({
+        action: "query", pageids: ids.slice(i, i + 50).join("|"),
         prop: "extracts|info", exintro: "1", explaintext: "1", inprop: "url",
         format: "json", formatversion: "2",
       }).toString();
-      const response = await fetch(endpoint, {
-        headers,
-        signal: AbortSignal.timeout(15000),
-      });
-      if (!response.ok) throw new Error("Wikipedia API antwortete mit HTTP " + response.status);
-      const payload = await response.json();
-      return (payload?.query?.pages ?? [])
-        .filter((page: any) => page && page.title && page.fullurl)
-        .map((page: any) => ({
-          title: String(page.title).slice(0, 500),
-          extract: String(page.extract || "").slice(0, 20000),
-          source_name: "Wikipedia", source_language: "de",
-          source_url: String(page.fullurl), license: "CC BY-SA 4.0",
-          license_url: "https://creativecommons.org/licenses/by-sa/4.0/",
-          collected_at: new Date().toISOString(),
-        }));
-    }));
-    const uniqueRows = Array.from(
-      new Map(batches.flat().map((row: any) => [row.source_url, row])).values(),
-    );
-    let saved = 0;
+      const detailResponse = await fetch(detail, { headers, signal: AbortSignal.timeout(18000) });
+      if (!detailResponse.ok) throw new Error("Wikipedia-Artikel konnten nicht geladen werden.");
+      const detailData = await detailResponse.json();
+      pages.push(...(detailData?.query?.pages || []));
+    }
+    const rows = pages.filter((page: any) => page && page.title && page.fullurl)
+      .map((page: any) => ({
+        title: String(page.title).slice(0, 500),
+        extract: String(page.extract || "").slice(0, 20000),
+        source_name: "Wikipedia", source_language: "de",
+        source_url: String(page.fullurl), license: "CC BY-SA 4.0",
+        license_url: "https://creativecommons.org/licenses/by-sa/4.0/",
+        category: selected[0], topic_key: selected[1],
+        collected_at: new Date().toISOString(),
+      }));
+    const uniqueRows = Array.from(new Map(rows.map((row: any) => [row.source_url, row])).values());
     if (uniqueRows.length) {
       const { error } = await admin.from("world_knowledge_articles")
         .upsert(uniqueRows, { onConflict: "source_url", ignoreDuplicates: true });
       if (error) throw error;
-      const { count, error: countError } = await admin
-        .from("world_knowledge_articles").select("id", { count: "exact", head: true });
-      if (countError) throw countError;
-      saved = uniqueRows.length;
-      await admin.from("world_knowledge_collector_state")
-        .update({ total_saved: Number(count || 0) }).eq("id", true);
     }
-    const finishedAt = new Date().toISOString();
+    const { count, error: countError } = await admin
+      .from("world_knowledge_articles").select("id", { count: "exact", head: true });
+    if (countError) throw countError;
+    await admin.from("world_knowledge_collector_state")
+      .update({ total_saved: Number(count || 0) }).eq("id", true);
     await admin.from("world_knowledge_collector_runs").update({
-      status: "completed", saved_count: saved,
-      message: saved ? "Paralleler Wikipedia-Import abgeschlossen." : "Keine neuen Einträge gefunden.",
-      finished_at: finishedAt,
-    }).eq("id", run.id);
-    return json({ status: "completed", saved, batch_size: uniqueRows.length, source: "Wikipedia DE" });
+      status: "completed", saved_count: uniqueRows.length,
+      message: "Thema: " + selected[0], finished_at: new Date().toISOString(),
+    }).eq("id", runResult.data.id);
+    return json({ status: "completed", saved: uniqueRows.length, total: Number(count || 0), category: selected[0] });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unbekannter Fehler";
-    console.error("Wikipedia collector failed:", message);
+    console.error("Knowledge collector failed:", message);
     await admin.from("world_knowledge_collector_runs").update({
       status: "failed", message: message.slice(0, 500), finished_at: new Date().toISOString(),
-    }).eq("id", run.id);
-    return json({ status: "error", code: "WIKIPEDIA_IMPORT_FAILED", message: "Wikipedia-Import fehlgeschlagen.", detail: message.slice(0, 250) }, 502);
+    }).eq("id", runResult.data.id);
+    return json({ status: "error", message: "Wissenssammlung fehlgeschlagen.", detail: message.slice(0, 250) }, 502);
   }
 });
