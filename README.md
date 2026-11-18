@@ -20,7 +20,7 @@
 - KI-Antworten und die zugehörigen Fragen werden dauerhaft in \`world_knowledge_queries\` archiviert.
 - Gesammelte Artikel liegen in \`world_knowledge_articles\` und werden auf einer eigenen Seite \`archive.html\` angezeigt.
 - KI-Antworten werden mit Marked gerendert und anschließend mit DOMPurify bereinigt. Unterstützt werden Fettdruck, Überschriften, Listen, Links, Code und Tabellen.
-- Während die Startseite sichtbar und aktiv ist, fragt der Browser automatisch etwa alle 95 Sekunden einen neuen Sammellauf an. Der globale Datenbank-Lock verhindert parallele Importe. Ein Lauf sammelt bis zu fünf zufällige Wikipedia-Einleitungen.
+- Der Sammler rotiert systematisch durch 22 Themengebiete und importiert bis zu 50 passende Artikel je Runde. Besucherfragen werden nicht gespeichert.
 
 ## Tabellen
 
@@ -34,7 +34,7 @@
 
 \`world-knowledge-collector\` unterstützt:
 - \`action: "collect"\`: zufällige Wikipedia-Einleitungen importieren
-- \`action: "search"\`: Archivsuche, Wikipedia-Fallback, Groq-Antwort und Archivierung der Frage
+- \`action: "search"\`: Archivsuche, Wikipedia-Fallback, Groq-Antwort ohne Speicherung der Besucherfrage
 
 Supabase Secret Key und \`GROQ_API_KEY\` bleiben ausschließlich auf dem Server. Der Browser enthält nur die öffentliche Supabase Publishable Key.
 
