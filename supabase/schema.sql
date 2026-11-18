@@ -8,6 +8,8 @@ create table if not exists public.world_knowledge_articles (
   source_name text not null default 'Wikipedia',
   source_language text not null default 'de',
   source_url text not null unique,
+  category text not null default 'Unsortiert',
+  topic_key text not null default 'unsorted',
   license text not null default 'CC BY-SA 4.0',
   license_url text not null default 'https://creativecommons.org/licenses/by-sa/4.0/',
   collected_at timestamptz not null default now(),
@@ -15,6 +17,7 @@ create table if not exists public.world_knowledge_articles (
     to_tsvector('german', coalesce(title, '') || ' ' || coalesce(extract, ''))
   ) stored
 );
+create index if not exists world_knowledge_articles_category_idx on public.world_knowledge_articles(category, collected_at desc);
 create index if not exists world_knowledge_articles_search_idx on public.world_knowledge_articles using gin(search_vector);
 create index if not exists world_knowledge_articles_collected_idx on public.world_knowledge_articles(collected_at desc);
 
@@ -33,7 +36,8 @@ create table if not exists public.world_knowledge_collector_state (
   id boolean primary key default true check (id = true),
   last_started_at timestamptz,
   total_runs bigint not null default 0,
-  total_saved bigint not null default 0
+  total_saved bigint not null default 0,
+  next_topic_index integer not null default 0
 );
 insert into public.world_knowledge_collector_state(id) values (true) on conflict (id) do nothing;
 
@@ -49,6 +53,27 @@ create policy "World knowledge public run read" on public.world_knowledge_collec
 grant select on public.world_knowledge_articles to anon, authenticated;
 grant select on public.world_knowledge_collector_runs to anon, authenticated;
 revoke all on public.world_knowledge_collector_state from anon, authenticated;
+
+create or replace function public.world_knowledge_next_topic()
+returns integer
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare current_index integer;
+begin
+  insert into public.world_knowledge_collector_state(id) values (true) on conflict (id) do nothing;
+  update public.world_knowledge_collector_state
+     set next_topic_index = (next_topic_index + 1) % 22,
+         total_runs = total_runs + 1,
+         last_started_at = now()
+   where id = true
+   returning (next_topic_index + 21) % 22 into current_index;
+  return current_index;
+end;
+$;
+revoke all on function public.world_knowledge_next_topic() from public, anon, authenticated;
+grant execute on function public.world_knowledge_next_topic() to service_role;
 
 create or replace function public.world_knowledge_claim_collector_run(p_cooldown_seconds integer default 90)
 returns boolean
