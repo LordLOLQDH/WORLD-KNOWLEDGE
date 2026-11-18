@@ -33,6 +33,4 @@
   $("archive-search-form").addEventListener("submit",e=>{e.preventDefault();term=$("archive-search").value.trim();load(false);});
   $("archive-more").addEventListener("click",()=>load(true));
   load(false);
-  }));
-  load(false);
 })();
