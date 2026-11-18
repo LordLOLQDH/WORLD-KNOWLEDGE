@@ -204,30 +204,9 @@ Deno.serve(async (req: Request) => {
   }
 
   if (action !== "collect") return json({ status: "error", message: "Unbekannte Aktion." }, 400);
-  const { data: claimed, error: claimError } = await admin.rpc(
-    "world_knowledge_claim_collector_run", { p_cooldown_seconds: 10 },
-  );
-  if (claimError) {
-    console.error("Collector lock failed:", claimError.message);
-    return json({ status: "error", code: "COLLECTOR_LOCK_FAILED", message: "Sammelsperre konnte nicht geprüft werden." }, 500);
-  }
-  if (!claimed) {
-    const { data: state } = await admin.from("world_knowledge_collector_state")
-      .select("last_started_at").eq("id", true).single();
-    const elapsed = state?.last_started_at
-      ? (Date.now() - new Date(state.last_started_at).getTime()) / 1000
-      : 0;
-    const retryAfterSeconds = Math.max(1, Math.ceil(10 - elapsed));
-    return json({
-      status: "cooldown",
-      retry_after_seconds: retryAfterSeconds,
-      message: "Der letzte Sammellauf liegt noch innerhalb der globalen 10-Sekunden-Pause.",
-    });
-  }
-
   const { data: run, error: runError } = await admin
     .from("world_knowledge_collector_runs")
-    .insert({ source_name: "Wikipedia DE", status: "running" })
+    .insert({ source_name: "Wikipedia DE · Hochgeschwindigkeit", status: "running" })
     .select("id").single();
   if (runError) {
     console.error("Run log failed:", runError.message);
@@ -235,46 +214,58 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const endpoint = new URL("https://de.wikipedia.org/w/api.php");
-    endpoint.search = new URLSearchParams({
-      action: "query", generator: "random", grnnamespace: "0", grnlimit: "5",
-      prop: "extracts|info", exintro: "1", explaintext: "1", inprop: "url",
-      format: "json", formatversion: "2",
-    }).toString();
-    const response = await fetch(endpoint, {
-      headers: { "Accept": "application/json", "User-Agent": "WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)" },
-      signal: AbortSignal.timeout(12000),
-    });
-    if (!response.ok) throw new Error("Wikipedia API antwortete mit HTTP " + response.status);
-    const payload = await response.json();
-    const rows = (payload?.query?.pages ?? [])
-      .filter((page: any) => page && page.title && page.fullurl)
-      .map((page: any) => ({
-        title: String(page.title).slice(0, 500),
-        extract: String(page.extract || "").slice(0, 20000),
-        source_name: "Wikipedia", source_language: "de",
-        source_url: String(page.fullurl), license: "CC BY-SA 4.0",
-        license_url: "https://creativecommons.org/licenses/by-sa/4.0/",
-        collected_at: new Date().toISOString(),
-      }));
+    const headers = {
+      "Accept": "application/json",
+      "User-Agent": "WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)",
+    };
+    // Five independent API batches run concurrently. Each batch asks Wikipedia
+    // for up to ten random German articles, then all rows are upserted together.
+    const batches = await Promise.all(Array.from({ length: 5 }, async () => {
+      const endpoint = new URL("https://de.wikipedia.org/w/api.php");
+      endpoint.search = new URLSearchParams({
+        action: "query", generator: "random", grnnamespace: "0", grnlimit: "10",
+        prop: "extracts|info", exintro: "1", explaintext: "1", inprop: "url",
+        format: "json", formatversion: "2",
+      }).toString();
+      const response = await fetch(endpoint, {
+        headers,
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!response.ok) throw new Error("Wikipedia API antwortete mit HTTP " + response.status);
+      const payload = await response.json();
+      return (payload?.query?.pages ?? [])
+        .filter((page: any) => page && page.title && page.fullurl)
+        .map((page: any) => ({
+          title: String(page.title).slice(0, 500),
+          extract: String(page.extract || "").slice(0, 20000),
+          source_name: "Wikipedia", source_language: "de",
+          source_url: String(page.fullurl), license: "CC BY-SA 4.0",
+          license_url: "https://creativecommons.org/licenses/by-sa/4.0/",
+          collected_at: new Date().toISOString(),
+        }));
+    }));
+    const uniqueRows = Array.from(
+      new Map(batches.flat().map((row: any) => [row.source_url, row])).values(),
+    );
     let saved = 0;
-    if (rows.length) {
-      const { data, error } = await admin.from("world_knowledge_articles")
-        .upsert(rows, { onConflict: "source_url" }).select("id");
+    if (uniqueRows.length) {
+      const { error } = await admin.from("world_knowledge_articles")
+        .upsert(uniqueRows, { onConflict: "source_url", ignoreDuplicates: true });
       if (error) throw error;
-      saved = data?.length ?? rows.length;
-      const { data: state } = await admin.from("world_knowledge_collector_state")
-        .select("total_saved").eq("id", true).single();
+      const { count, error: countError } = await admin
+        .from("world_knowledge_articles").select("id", { count: "exact", head: true });
+      if (countError) throw countError;
+      saved = uniqueRows.length;
       await admin.from("world_knowledge_collector_state")
-        .update({ total_saved: Number(state?.total_saved || 0) + saved }).eq("id", true);
+        .update({ total_saved: Number(count || 0) }).eq("id", true);
     }
     const finishedAt = new Date().toISOString();
     await admin.from("world_knowledge_collector_runs").update({
       status: "completed", saved_count: saved,
-      message: saved ? "Wikipedia-Einleitungen importiert." : "Keine geeigneten Einträge gefunden.",
+      message: saved ? "Paralleler Wikipedia-Import abgeschlossen." : "Keine neuen Einträge gefunden.",
       finished_at: finishedAt,
     }).eq("id", run.id);
-    return json({ status: "completed", saved, source: "Wikipedia DE" });
+    return json({ status: "completed", saved, batch_size: uniqueRows.length, source: "Wikipedia DE" });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unbekannter Fehler";
     console.error("Wikipedia collector failed:", message);
