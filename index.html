@@ -7,18 +7,18 @@
   <meta name="description" content="WORLD KNOWLEDGE ist ein offenes, wachsendes Wissensarchiv mit KI-gestützten Antworten.">
   <title>WORLD KNOWLEDGE – Wissen fragen</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link rel="stylesheet" href="assets/css/style.css?v=0.3.1">
+  <link rel="stylesheet" href="assets/css/style.css?v=0.4.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
   <script src="assets/js/config.js" defer></script>
-  <script src="assets/js/app.js?v=0.3.1" defer></script>
+  <script src="assets/js/app.js?v=0.4.0" defer></script>
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="./" aria-label="WORLD KNOWLEDGE Startseite"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a>
     <nav class="nav"><a class="active" href="./">Fragen</a><a href="archive.html">Archiv</a><a href="#system">Sammlung</a></nav>
-    <span class="version">v0.3.1</span>
+    <span class="version">v0.4.0</span>
   </header>
   <main>
     <section class="hero" id="suche">
@@ -49,12 +49,12 @@
 
     <section class="collector-panel" id="system">
       <div class="collector-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"></path><circle cx="12" cy="12" r="4"></circle></svg></div>
-      <div class="collector-copy"><div class="eyebrow">KONTINUIERLICHE DATENSAMMLUNG</div><h2>Solange du hier bist, sammelt das System weiter.</h2><p>Bei aktiver Website wird automatisch ungefähr alle 95 Sekunden ein neuer Sammellauf angefragt. Jeder Lauf importiert bis zu fünf zufällige Wikipedia-Einleitungen. Die Inhalte und Fragen werden zentral im Archiv gespeichert, nicht als dauerhafte Sammlung auf der Startseite.</p><div class="collector-status"><span class="status-dot" id="status-dot"></span><span id="collector-status">Verbindung wird geprüft …</span></div></div>
+      <div class="collector-copy"><div class="eyebrow">KONTINUIERLICHE DATENSAMMLUNG</div><h2>Starte die Sammlung und lass Wissen wachsen.</h2><p>Mit „Sammlung starten“ beginnt ein fortlaufender Prozess. Alle etwa 12 Sekunden wird ein neuer Sammelschritt gestartet und bis zu fünf zufällige Wikipedia-Einleitungen werden importiert. Die Sammlung läuft, solange sie aktiviert und die Website im Vordergrund geöffnet ist. „Sammlung stoppen“ beendet sie.</p><div class="collector-status"><span class="status-dot" id="status-dot"></span><span id="collector-status">Verbindung wird geprüft …</span></div></div>
       <button id="collect-button" class="primary-button" type="button">Jetzt sammeln</button>
     </section>
     <div class="archive-promo"><div><strong>Das gesamte Wissen im Archiv</strong><p>Artikel, Quellen und gespeicherte Fragen an einem Ort.</p></div><a href="archive.html">Archiv öffnen ↗</a></div>
-    <section class="notice"><strong>Transparenz &amp; Quellen</strong><p>Wikipedia-Einleitungen werden mit Originalquelle und Lizenzangabe gespeichert. KI-Antworten werden in Markdown erzeugt und anhand der verfügbaren Quellen erstellt. Die Sammlung läuft nur, solange die Website geöffnet und aktiv ist. Browser können Hintergrundaktivitäten pausieren.</p></section>
+    <section class="notice"><strong>Transparenz &amp; Quellen</strong><p>Wikipedia-Einleitungen werden mit Originalquelle und Lizenzangabe gespeichert. KI-Antworten werden in Markdown erzeugt und anhand der verfügbaren Quellen erstellt. Die fortlaufende Sammlung läuft nur, solange sie aktiviert und die Website geöffnet ist. Browser können Hintergrundaktivitäten pausieren.</p></section>
   </main>
-  <footer><a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><span>Offenes Wissen. Nachvollziehbare Quellen.</span><span>Version 0.3.1</span></footer>
+  <footer><a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><span>Offenes Wissen. Nachvollziehbare Quellen.</span><span>Version 0.4.0</span></footer>
 </body>
 </html>
