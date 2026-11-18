@@ -6,7 +6,8 @@
   let client = null;
   let collectorTimer = null;
   let collectorRunning = false;
-  const COLLECTOR_INTERVAL = 95000;
+  let continuousMode = false;
+  const COLLECTOR_INTERVAL = 12000;
 
   function setStatus(message, state = "") {
     $("collector-status").textContent = message;
@@ -118,9 +119,9 @@
       const {data,error} = await client.functions.invoke("world-knowledge-collector",{body:{action:"collect"}});
       if(error) throw new Error(await errorMessage(error));
       if(data?.status === "cooldown") {
-        const seconds = Math.max(1, Number(data.retry_after_seconds || 90));
+        const seconds = Math.max(1, Number(data.retry_after_seconds || 10));
         nextDelay = seconds * 1000 + 1500;
-        setStatus("Der letzte Sammellauf liegt erst kurz zurück. Neuer Versuch in etwa " + seconds + " Sekunden.","online");
+        setStatus("Kurze technische Pause. Nächster Sammelschritt in " + seconds + " Sekunden.","online");
       } else if(data?.status === "completed") {
         setStatus((data.saved || 0) + " Einträge verarbeitet. Sammlung läuft weiter.","online");
         await loadStats();
@@ -132,7 +133,9 @@
     } finally {
       collectorRunning = false;
       if(manual) $("collect-button").disabled = false;
-      scheduleCollector(nextDelay);
+      $("collect-button").textContent = continuousMode ? "Sammlung stoppen" : "Sammlung starten";
+      $("collect-button").classList.toggle("is-running", continuousMode);
+      if(continuousMode) scheduleCollector(nextDelay);
     }
   }
 
@@ -143,9 +146,20 @@
     await runSearch(term);
     $("ai-result").scrollIntoView({behavior:"smooth",block:"start"});
   });
-  $("collect-button").addEventListener("click",()=>runCollector(true));
+  $("collect-button").addEventListener("click",()=>{
+    continuousMode = !continuousMode;
+    $("collect-button").textContent = continuousMode ? "Sammlung stoppen" : "Sammlung starten";
+    $("collect-button").classList.toggle("is-running", continuousMode);
+    if(continuousMode) {
+      setStatus("Dauerhafte Sammlung gestartet …","busy");
+      runCollector(true);
+    } else {
+      clearTimeout(collectorTimer);
+      setStatus("Sammlung angehalten. Bisherige Einträge bleiben gespeichert.","online");
+    }
+  });
   document.addEventListener("visibilitychange",()=>{
-    if(document.visibilityState==="visible" && client && !collectorRunning) runCollector(false);
+    if(document.visibilityState==="visible" && client && continuousMode && !collectorRunning) runCollector(false);
     else if(document.visibilityState!=="visible") clearTimeout(collectorTimer);
   });
 
@@ -155,7 +169,7 @@
     return;
   }
   client=window.supabase.createClient(config.SUPABASE_URL,config.SUPABASE_PUBLISHABLE_KEY);
-  setStatus("Verbunden. Sammlung wird gestartet …","online");
+  setStatus("Verbunden. Sammlung ist bereit. Klicke auf „Sammlung starten“.","online");
+  $("collect-button").textContent = "Sammlung starten";
   loadStats();
-  runCollector(false);
 })();
