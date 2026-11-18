@@ -217,7 +217,7 @@ Deno.serve(async (req: Request) => {
     const elapsed = state?.last_started_at
       ? (Date.now() - new Date(state.last_started_at).getTime()) / 1000
       : 0;
-    const retryAfterSeconds = Math.max(1, Math.ceil(90 - elapsed));
+    const retryAfterSeconds = Math.max(1, Math.ceil(10 - elapsed));
     return json({
       status: "cooldown",
       retry_after_seconds: retryAfterSeconds,
