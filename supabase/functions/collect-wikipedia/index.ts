@@ -205,7 +205,7 @@ Deno.serve(async (req: Request) => {
 
   if (action !== "collect") return json({ status: "error", message: "Unbekannte Aktion." }, 400);
   const { data: claimed, error: claimError } = await admin.rpc(
-    "world_knowledge_claim_collector_run", { p_cooldown_seconds: 90 },
+    "world_knowledge_claim_collector_run", { p_cooldown_seconds: 10 },
   );
   if (claimError) {
     console.error("Collector lock failed:", claimError.message);
@@ -221,7 +221,7 @@ Deno.serve(async (req: Request) => {
     return json({
       status: "cooldown",
       retry_after_seconds: retryAfterSeconds,
-      message: "Der letzte Sammellauf liegt noch innerhalb der globalen 90-Sekunden-Pause.",
+      message: "Der letzte Sammellauf liegt noch innerhalb der globalen 10-Sekunden-Pause.",
     });
   }
 
