@@ -155,7 +155,7 @@
       }
     } catch(error) {
       setStatus("Sammelt Wissen …","busy");
-      nextDelay = 1000;
+      nextDelay = 5000;
     } finally {
       collectorRunning = false;
       if(manual) $("collect-button").disabled = false;
@@ -196,7 +196,11 @@
   }
   client=window.supabase.createClient(config.SUPABASE_URL,config.SUPABASE_PUBLISHABLE_KEY);
   setStatus("Verbunden. Sammlung ist bereit. Klicke auf „Sammlung starten“.","online");
-  $("collect-button").textContent = "Sammlung starten";
+  continuousMode = true;
+  $("collect-button").textContent = "Sammlung stoppen";
+  $("collect-button").classList.add("is-running");
+  setStatus("Sammlung läuft automatisch …","busy");
+  runCollector(true);
   loadStats();
   setInterval(() => { if(continuousMode) loadStats(); }, 2500);
 })();
