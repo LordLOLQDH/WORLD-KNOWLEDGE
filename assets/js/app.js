@@ -57,7 +57,7 @@
       link.href = article.source_url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = "[" + (sources.children.length + 1) + "] " + article.source_name + " · " + article.title;
+      link.textContent = "[" + (sources.children.length + 1) + "] " + article.source_name + " · " + article.title;\n      link.className = "ai-source-link";
       sources.appendChild(link);
     });
     $("ai-sources-wrap").classList.toggle("hidden", !articles || !articles.length);
