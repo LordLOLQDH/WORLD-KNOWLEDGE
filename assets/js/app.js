@@ -9,9 +9,14 @@
   let continuousMode = false;
   const COLLECTOR_INTERVAL = 0;
   let displayedCount = 0;
-  let countAnimation = null;
-  let targetCount = 0;
+  let initialCountLoaded = false;
   let statsLoading = false;
+  const realtimeSeen = new Set();
+  function renderCount(value) {
+    displayedCount = Math.max(0, Number(value) || 0);
+    $("article-count").textContent = displayedCount.toLocaleString("de-DE");
+    $("article-count").dataset.value = String(displayedCount);
+  }
 
   function setStatus(message, state = "") {
     $("collector-status").textContent = message;
@@ -83,20 +88,9 @@
         client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
       ]);
       const actualCount = Number(articles || 0);
-      targetCount = actualCount;
-      if (!countAnimation && displayedCount !== targetCount) {
-        countAnimation = setInterval(() => {
-          displayedCount = displayedCount < targetCount
-            ? Math.min(targetCount, displayedCount + 1)
-            : Math.max(targetCount, displayedCount - 1);
-          $("article-count").textContent = displayedCount.toLocaleString("de-DE");
-          $("article-count").dataset.value = String(displayedCount);
-          if (displayedCount === targetCount) {
-            clearInterval(countAnimation);
-            countAnimation = null;
-          }
-        }, 35);
-      }
+      // The count is always the real database total, never an animation from zero.
+      renderCount(actualCount);
+      initialCountLoaded = true;
       if(runs) $("last-run").textContent = runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
     } catch(error) {
       console.warn("Stats refresh failed:", error);
@@ -195,7 +189,19 @@
     return;
   }
   client=window.supabase.createClient(config.SUPABASE_URL,config.SUPABASE_PUBLISHABLE_KEY);
-  setStatus("Verbunden. Sammlung ist bereit. Klicke auf „Sammlung starten“.","online");
+  // Realtime inserts update the counter immediately; periodic exact-count refresh is the fallback.
+  client.channel("world-knowledge-count-live")
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"world_knowledge_articles"},payload=>{
+      const rowId=payload?.new?.id;
+      if(rowId && !realtimeSeen.has(rowId)) {
+        realtimeSeen.add(rowId);
+        if(initialCountLoaded) renderCount(displayedCount + 1);
+      }
+      loadStats();
+    })
+    .on("postgres_changes",{event:"DELETE",schema:"public",table:"world_knowledge_articles"},()=>loadStats())
+    .subscribe();
+  setStatus("Verbunden. Archivbestand wird geladen.","online");
   continuousMode = true;
   $("collect-button").textContent = "Sammlung stoppen";
   $("collect-button").classList.add("is-running");
