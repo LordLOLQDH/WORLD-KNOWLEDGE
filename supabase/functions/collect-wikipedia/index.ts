@@ -122,6 +122,42 @@ async function groqAnswer(query: string, articles: any[], apiKey: string, ipHash
   }
 }
 
+
+// Supplementary source collectors run concurrently with the primary German Wikipedia batch.
+async function collectEnglishWiki(topic: string) {
+  const api = new URL("https://en.wikipedia.org/w/api.php");
+  api.search = new URLSearchParams({action:"query",list:"search",srsearch:topic,srnamespace:"0",srlimit:"15",format:"json",formatversion:"2"}).toString();
+  const h={"Accept":"application/json","User-Agent":"WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)"};
+  const res=await fetch(api,{headers:h,signal:AbortSignal.timeout(16000)});
+  if(!res.ok) throw new Error("English Wikipedia search HTTP "+res.status);
+  const ids=((await res.json())?.query?.search||[]).map((x:any)=>String(x.pageid)).filter(Boolean);
+  if(!ids.length) return [];
+  const d=new URL("https://en.wikipedia.org/w/api.php");
+  d.search=new URLSearchParams({action:"query",pageids:ids.join("|"),prop:"extracts|info",exintro:"1",explaintext:"1",inprop:"url",format:"json",formatversion:"2"}).toString();
+  const dr=await fetch(d,{headers:h,signal:AbortSignal.timeout(16000)});
+  if(!dr.ok) throw new Error("English Wikipedia batch HTTP "+dr.status);
+  return (((await dr.json())?.query?.pages)||[]).filter((p:any)=>p?.title&&p?.fullurl).map((p:any)=>({title:String(p.title).slice(0,500),extract:String(p.extract||"").slice(0,18000),source_name:"Wikipedia (English)",source_language:"en",source_url:String(p.fullurl),license:"CC BY-SA 4.0",license_url:"https://creativecommons.org/licenses/by-sa/4.0/",category:topic,topic_key:topic.toLowerCase(),collected_at:new Date().toISOString()}));
+}
+async function collectWikidata(topic: string) {
+  const u=new URL("https://www.wikidata.org/w/api.php");
+  u.search=new URLSearchParams({action:"wbsearchentities",search:topic,language:"de",uselang:"de",type:"item",limit:"15",format:"json"}).toString();
+  const res=await fetch(u,{headers:{"Accept":"application/json","User-Agent":"WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)"},signal:AbortSignal.timeout(12000)});
+  if(!res.ok) throw new Error("Wikidata HTTP "+res.status);
+  const items=(await res.json())?.search||[];
+  return items.filter((x:any)=>x?.id&&x?.label).map((x:any)=>({title:String(x.label).slice(0,500),extract:String(x.description||("Wikidata entity "+x.id)).slice(0,2000),source_name:"Wikidata",source_language:"de",source_url:"https://www.wikidata.org/wiki/"+encodeURIComponent(x.id),license:"CC0 1.0",license_url:"https://creativecommons.org/publicdomain/zero/1.0/",category:topic,topic_key:topic.toLowerCase(),collected_at:new Date().toISOString()}));
+}
+async function collectNasa(topic: string) {
+  const u=new URL("https://images-api.nasa.gov/search");
+  u.search=new URLSearchParams({q:topic,media_type:"image",page_size:"12"}).toString();
+  const res=await fetch(u,{headers:{"Accept":"application/json"},signal:AbortSignal.timeout(15000)});
+  if(!res.ok) throw new Error("NASA API HTTP "+res.status);
+  const items=(await res.json())?.collection?.items||[];
+  return items.filter((x:any)=>x?.data?.[0]?.nasa_id&&x?.data?.[0]?.title).map((x:any)=>{
+    const d=x.data[0]; const description=String(d.description||d.title||"").slice(0,3500);
+    return {title:String(d.title).slice(0,500),extract:description,source_name:"NASA Image and Video Library",source_language:"en",source_url:"https://images.nasa.gov/details/"+encodeURIComponent(d.nasa_id),license:"NASA media (item-specific rights apply)",license_url:"https://www.nasa.gov/nasa-brand-center/images-and-media/",category:topic,topic_key:topic.toLowerCase(),collected_at:new Date().toISOString()};
+  });
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -198,40 +234,44 @@ Deno.serve(async (req: Request) => {
   const { data: topicIndex, error: topicError } = await admin.rpc("world_knowledge_next_topic");
   if (topicError) return json({ status: "error", message: "Themenplanung nicht verfügbar." }, 500);
   const selected = topics[Number(topicIndex || 0) % topics.length];
-  const runResult = await admin.from("world_knowledge_collector_runs").insert({source_name:"Wikipedia · "+selected[0],status:"running"}).select("id").single();
+  const runResult = await admin.from("world_knowledge_collector_runs").insert({source_name:"Multi-Quelle · "+selected[0],status:"running"}).select("id").single();
   if(runResult.error) return json({status:"error",message:"Laufprotokoll konnte nicht angelegt werden."},500);
   try {
     const headers={"Accept":"application/json","User-Agent":"WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)"};
     const endpoint=new URL("https://de.wikipedia.org/w/api.php");
     endpoint.search=new URLSearchParams({action:"query",list:"categorymembers",cmtitle:"Kategorie:"+selected[1],cmtype:"page",cmlimit:"50",cmnamespace:"0",format:"json",formatversion:"2"}).toString();
     const response=await fetch(endpoint,{headers,signal:AbortSignal.timeout(18000)});
-    if(!response.ok) throw new Error("Wikipedia API HTTP "+response.status);
+    if(!response.ok) throw new Error("Wikipedia DE API HTTP "+response.status);
     const payload=await response.json();
     let members=payload?.query?.categorymembers||[];
     if(!members.length){
       const fallback=new URL("https://de.wikipedia.org/w/api.php");
       fallback.search=new URLSearchParams({action:"query",list:"search",srsearch:selected[0],srnamespace:"0",srlimit:"50",format:"json",formatversion:"2"}).toString();
       const sr=await fetch(fallback,{headers,signal:AbortSignal.timeout(15000)});
-      if(!sr.ok) throw new Error("Wikipedia-Themensuche fehlgeschlagen");
+      if(!sr.ok) throw new Error("Wikipedia DE Thema-Suche fehlgeschlagen");
       members=(await sr.json())?.query?.search||[];
     }
     const ids=members.slice(0,50).map((x:any)=>String(x.pageid)).filter(Boolean);
-    const pages:any[]=[];
-    for(let i=0;i<ids.length;i+=50){
-      const detail=new URL("https://de.wikipedia.org/w/api.php");
-      detail.search=new URLSearchParams({action:"query",pageids:ids.slice(i,i+50).join("|"),prop:"extracts|info",exintro:"1",explaintext:"1",inprop:"url",format:"json",formatversion:"2"}).toString();
-      const dr=await fetch(detail,{headers,signal:AbortSignal.timeout(18000)});
-      if(!dr.ok) throw new Error("Wikipedia-Artikel konnten nicht geladen werden");
-      pages.push(...((await dr.json())?.query?.pages||[]));
-    }
-    const rows=pages.filter((p:any)=>p&&p.title&&p.fullurl).map((p:any)=>({title:String(p.title).slice(0,500),extract:String(p.extract||"").slice(0,20000),source_name:"Wikipedia",source_language:"de",source_url:String(p.fullurl),license:"CC BY-SA 4.0",license_url:"https://creativecommons.org/licenses/by-sa/4.0/",category:selected[0],topic_key:selected[1],collected_at:new Date().toISOString()}));
-    const unique=Array.from(new Map(rows.map((r:any)=>[r.source_url,r])).values());
+    const detail=new URL("https://de.wikipedia.org/w/api.php");
+    detail.search=new URLSearchParams({action:"query",pageids:ids.join("|"),prop:"extracts|info",exintro:"1",explaintext:"1",inprop:"url",format:"json",formatversion:"2"}).toString();
+    const dr=await fetch(detail,{headers,signal:AbortSignal.timeout(18000)});
+    if(!dr.ok) throw new Error("Wikipedia DE Artikel HTTP "+dr.status);
+    const deRows=(((await dr.json())?.query?.pages)||[]).filter((p:any)=>p&&p.title&&p.fullurl).map((p:any)=>({title:String(p.title).slice(0,500),extract:String(p.extract||"").slice(0,18000),source_name:"Wikipedia (Deutsch)",source_language:"de",source_url:String(p.fullurl),license:"CC BY-SA 4.0",license_url:"https://creativecommons.org/licenses/by-sa/4.0/",category:selected[0],topic_key:selected[1],collected_at:new Date().toISOString()}));
+    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),collectNasa(selected[0])]);
+    const sourceRows=sourceResults.flatMap((r:any)=>r.status==="fulfilled"?r.value:[]);
+    sourceResults.forEach((r:any)=>{if(r.status==="rejected")console.warn("Secondary source collector failed:",r.reason?.message||r.reason);});
+    const rows=[...deRows,...sourceRows];
+    const unique=Array.from(new Map(rows.filter((r:any)=>r.source_url&&r.title).map((r:any)=>[r.source_url,r])).values());
+    const {data:existing,error:beforeErr}=await admin.from("world_knowledge_articles").select("source_url").in("source_url",unique.map((r:any)=>r.source_url));
+    if(beforeErr) throw beforeErr;
+    const beforeSet=new Set((existing||[]).map((x:any)=>x.source_url));
+    const newRows=unique.filter((r:any)=>!beforeSet.has(r.source_url));
     if(unique.length){const {error}=await admin.from("world_knowledge_articles").upsert(unique,{onConflict:"source_url",ignoreDuplicates:true});if(error)throw error;}
     const {count,error:countError}=await admin.from("world_knowledge_articles").select("id",{count:"exact",head:true});
     if(countError)throw countError;
     await admin.from("world_knowledge_collector_state").update({total_saved:Number(count||0)}).eq("id",true);
-    await admin.from("world_knowledge_collector_runs").update({status:"completed",saved_count:unique.length,message:"Thema: "+selected[0],finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
-    return json({status:"completed",saved:unique.length,total:Number(count||0),category:selected[0]});
+    await admin.from("world_knowledge_collector_runs").update({status:"completed",saved_count:newRows.length,message:"Thema: "+selected[0]+" · Quellen: DE-Wikipedia, EN-Wikipedia, Wikidata, NASA",finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
+    return json({status:"completed",saved:newRows.length,processed:unique.length,total:Number(count||0),category:selected[0],sources:["Wikipedia DE","Wikipedia EN","Wikidata","NASA"]});
   }catch(error){
     const message=error instanceof Error?error.message:"Unbekannter Fehler";
     await admin.from("world_knowledge_collector_runs").update({status:"failed",message:message.slice(0,500),finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
