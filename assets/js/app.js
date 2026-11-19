@@ -53,8 +53,8 @@
       : "Zu dieser Suche konnte keine KI-Antwort erstellt werden. Die Quellen bleiben im Archiv verfügbar."
     ));
     $("ai-answer-note").textContent = answer
-      ? "KI-Antwort · gespeichert im Archiv · Quellenbasierte Antwort"
-      : "KI-Antwort momentan nicht verfügbar";
+      ? (aiStatus === "ready" ? "KI-Antwort · quellenbasiert" : "Automatische Quellenübersicht · KI gerade nicht verfügbar")
+      : "Antwort momentan nicht verfügbar";
     const sources = $("ai-sources");
     sources.innerHTML = "";
     (articles || []).slice(0,5).forEach((article) => {
@@ -169,7 +169,8 @@
   $("search-form").addEventListener("submit",async(event)=>{
     event.preventDefault();
     const term=$("search-input").value.trim();
-    if(term.length<2) return;
+    if(term.length<2){ $("search-input").focus(); return; }
+    if(!client){ $("ai-result").classList.remove("hidden"); $("ai-loading").classList.add("hidden"); $("ai-answer-text").textContent="Die Verbindung zur Wissensdatenbank ist noch nicht bereit. Bitte lade die Seite neu."; $("ai-answer-note").textContent="Verbindung nicht verfügbar"; return; }
     await runSearch(term);
     $("ai-result").scrollIntoView({behavior:"smooth",block:"start"});
   });
