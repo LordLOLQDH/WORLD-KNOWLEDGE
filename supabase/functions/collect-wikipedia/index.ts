@@ -257,7 +257,7 @@ Deno.serve(async (req: Request) => {
     const dr=await fetch(detail,{headers,signal:AbortSignal.timeout(18000)});
     if(!dr.ok) throw new Error("Wikipedia DE Artikel HTTP "+dr.status);
     const deRows=(((await dr.json())?.query?.pages)||[]).filter((p:any)=>p&&p.title&&p.fullurl).map((p:any)=>({title:String(p.title).slice(0,500),extract:String(p.extract||"").slice(0,18000),source_name:"Wikipedia (Deutsch)",source_language:"de",source_url:String(p.fullurl),license:"CC BY-SA 4.0",license_url:"https://creativecommons.org/licenses/by-sa/4.0/",category:selected[0],topic_key:selected[1],collected_at:new Date().toISOString()}));
-    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),collectNasa(selected[0])]);
+    const nasaRelevant=["Naturwissenschaften","Physik","Astronomie","Umwelt"].includes(selected[0]);\n    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),...(nasaRelevant?[collectNasa(selected[0])]:[])]);
     const sourceRows=sourceResults.flatMap((r:any)=>r.status==="fulfilled"?r.value:[]);
     sourceResults.forEach((r:any)=>{if(r.status==="rejected")console.warn("Secondary source collector failed:",r.reason?.message||r.reason);});
     const rows=[...deRows,...sourceRows];
@@ -271,7 +271,7 @@ Deno.serve(async (req: Request) => {
     if(countError)throw countError;
     await admin.from("world_knowledge_collector_state").update({total_saved:Number(count||0)}).eq("id",true);
     await admin.from("world_knowledge_collector_runs").update({status:"completed",saved_count:newRows.length,message:"Thema: "+selected[0]+" · Quellen: DE-Wikipedia, EN-Wikipedia, Wikidata, NASA",finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
-    return json({status:"completed",saved:newRows.length,processed:unique.length,total:Number(count||0),category:selected[0],sources:["Wikipedia DE","Wikipedia EN","Wikidata","NASA"]});
+    return json({status:"completed",saved:newRows.length,processed:unique.length,total:Number(count||0),category:selected[0],sources:nasaRelevant?["Wikipedia DE","Wikipedia EN","Wikidata","NASA"]:["Wikipedia DE","Wikipedia EN","Wikidata"]});
   }catch(error){
     const message=error instanceof Error?error.message:"Unbekannter Fehler";
     await admin.from("world_knowledge_collector_runs").update({status:"failed",message:message.slice(0,500),finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
