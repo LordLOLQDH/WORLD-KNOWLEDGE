@@ -7,7 +7,7 @@
   let collectorTimer = null;
   let collectorRunning = false;
   let continuousMode = false;
-  const COLLECTOR_INTERVAL = 0;
+  const COLLECTOR_INTERVAL = 10000;
   let displayedCount = 0;
   let initialCountLoaded = false;
   let statsLoading = false;
@@ -83,10 +83,13 @@
     if (!client || statsLoading) return;
     statsLoading = true;
     try {
-      const [{count:articles}, {data:runs}] = await Promise.all([
+      const [articleResult, runResult] = await Promise.all([
         client.from("world_knowledge_articles").select("*",{count:"exact",head:true}),
         client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
       ]);
+      if(articleResult.error) throw articleResult.error;
+      if(runResult.error) throw runResult.error;
+      const articles=articleResult.count, runs=runResult.data;
       const actualCount = Number(articles || 0);
       // The count is always the real database total, never an animation from zero.
       renderCount(actualCount);
@@ -94,6 +97,9 @@
       if(runs) $("last-run").textContent = runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
     } catch(error) {
       console.warn("Stats refresh failed:", error);
+      $("article-count").textContent = "—";
+      $("last-run").textContent = "Nicht verfügbar";
+      if(!collectorRunning) setStatus("Statistik konnte nicht geladen werden: "+(error?.message||"Verbindungsfehler"),"");
     } finally {
       statsLoading = false;
     }
@@ -148,8 +154,9 @@
         throw new Error(data?.message || "Sammellauf fehlgeschlagen.");
       }
     } catch(error) {
-      setStatus("Sammelt Wissen …","busy");
-      nextDelay = 5000;
+      const message = error?.message || "Unbekannter Fehler";
+      setStatus("Collector-Fehler: "+message+" · neuer Versuch in 10 Sekunden","");
+      nextDelay = 10000;
     } finally {
       collectorRunning = false;
       if(manual) $("collect-button").disabled = false;
