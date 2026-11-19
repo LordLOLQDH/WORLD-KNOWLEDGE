@@ -22,7 +22,7 @@
     (data||[]).forEach(item=>{
       const card=document.createElement("article");
       card.className="archive-card";
-      card.innerHTML='<div class="archive-card-kicker">'+esc(item.category||"Unsortiert")+' · '+esc(date(item.collected_at))+'</div><h2>'+esc(item.title)+'</h2><p class="archive-extract">'+esc(item.extract||"Keine Einleitung gespeichert.")+'</p><div class="archive-card-foot"><span>'+esc(item.source_name||"Wikipedia")+' · '+esc(item.license||"")+'</span><a href="'+esc(item.source_url)+'" target="_blank" rel="noopener noreferrer">Originalquelle ↗</a></div>';
+      card.innerHTML='<div class="archive-card-kicker">'+esc(item.category||"Unsortiert")+' · '+esc(date(item.collected_at))+'</div><h2>'+esc(item.title)+'</h2><p class="archive-extract">'+esc(item.extract||"Keine Einleitung gespeichert.")+'</p><div class="archive-card-foot"><span>'+esc(item.source_name||"Wikipedia")+' · '+esc(item.license||"")+'</span><a href="'+esc(item.source_url)+'" target="_blank" rel="noopener noreferrer">Originalquelle</a></div>';
       host.appendChild(card);
     });
     offset+=data?.length||0;
