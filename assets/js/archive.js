@@ -5,7 +5,7 @@
   let term="",offset=0,mediaFilter="all",categoryFilter="all";const pageSize=15;
   const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const date=s=>s?new Date(s).toLocaleString("de-DE",{dateStyle:"medium",timeStyle:"short"}):"";
-  const palette=["#6b806e","#9b7755","#6a7894","#8b675f","#597d85","#81745d","#756b8c","#a17c6d"];
+  const palette=["#d4a64d","#b85c4b","#527a9b","#688b65","#9b6d9b","#d0783f","#3f8790","#8e784b"];
   const categories=["Astronomie","Biologie","Chemie","Geographie","Geschichte","Gesellschaft","Informatik","Kunst","Literatur","Mathematik","Medizin","Musik","Naturwissenschaften","Philosophie","Physik","Politik","Religion","Sport","Sprache","Technik","Umwelt","Wirtschaft","Unsortiert"];
   categories.forEach(cat=>{const o=document.createElement("option");o.value=cat;o.textContent=cat;$("archive-category-filter").appendChild(o);});
   function applyFilters(q){
