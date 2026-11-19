@@ -122,3 +122,33 @@ main{max-width:1120px;margin:auto;padding:0 28px}.hero{text-align:center;padding
 
 /* Dropdown navigation v0.6.3 */
 .topbar{position:relative;z-index:20}.site-menu{position:relative}.menu-toggle{display:inline-flex;align-items:center;gap:9px;border:1px solid #dce5ef;border-radius:10px;background:#fff;color:#344b64;padding:10px 13px;font:600 12px 'DM Sans',sans-serif;cursor:pointer}.menu-toggle:hover,.menu-toggle[aria-expanded=true]{background:#f1f6fb;border-color:#c6d6e6}.menu-lines{width:15px;height:12px;position:relative;border-top:2px solid #456b92;border-bottom:2px solid #456b92;display:inline-block}.menu-lines:after{content:'';position:absolute;left:0;right:0;top:4px;border-top:2px solid #456b92}.menu-panel{position:absolute;right:0;top:calc(100% + 10px);width:min(270px,calc(100vw - 35px));padding:8px;background:#fff;border:1px solid #dfe7ef;border-radius:13px;box-shadow:0 14px 35px #203b5b20;display:flex;flex-direction:column;gap:2px}.menu-panel[hidden]{display:none}.menu-panel a{display:block;padding:12px 13px;color:#526981;text-decoration:none;font-size:13px;border-radius:8px}.menu-panel a:hover{background:#f0f5fa;color:#245b91}.nav{display:none!important}@media(max-width:700px){.topbar{gap:10px}.menu-toggle{padding:9px 11px;font-size:11px}.menu-panel{right:-10px}.version{margin-left:auto}}
+
+/* Mobile polish and consistent version v0.6.4 */
+@media(max-width:700px){
+  main{padding:0 16px}
+  .hero{padding:46px 0 26px}
+  .hero h1{font-size:clamp(36px,10vw,48px);margin:18px 0 14px;line-height:1.08}
+  .hero-copy{font-size:13px;line-height:1.65;padding:0 4px}
+  .search-box{margin:24px auto 10px;height:58px;padding:6px 7px 6px 12px;gap:8px}
+  .search-box input{font-size:13px}
+  .search-box button{padding:11px 14px}
+  .search-hint{line-height:1.5;padding:0 8px}
+  .stats-grid{margin:24px 0 30px;gap:9px}
+  .stat-card{padding:15px 12px;border-radius:13px}
+  .stat-card strong{font-size:23px;margin:7px 0 5px}
+  .stat-label,.stat-note{font-size:10px;line-height:1.5}
+  .collector-panel{display:grid;grid-template-columns:44px minmax(0,1fr);align-items:start;gap:12px;padding:17px;margin-bottom:20px}
+  .collector-icon{width:42px;height:42px}
+  .collector-copy{min-width:0}
+  .collector-copy h2{font-size:17px;line-height:1.35;margin:5px 0}
+  .collector-copy p{font-size:12px;line-height:1.65;margin:8px 0}
+  .collector-status{font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+  .collector-panel .primary-button{grid-column:1/-1;width:100%;margin-top:2px;padding:14px}
+  .archive-promo{padding:18px;margin:0 0 24px;align-items:flex-start}
+  .archive-promo strong{font-size:14px}
+  .archive-promo p{line-height:1.6}
+  .notice{padding:12px 0 30px}
+  .notice p{font-size:11px;line-height:1.7}
+  footer{padding:17px 16px;gap:12px}
+  footer .version{font-size:9px}
+}
