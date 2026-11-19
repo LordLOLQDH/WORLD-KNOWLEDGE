@@ -1,56 +1,37 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f9fc">
-  <meta name="description" content="WORLD KNOWLEDGE ist ein offenes, wachsendes Wissensarchiv mit KI-gestützten Antworten.">
-  <title>WORLD KNOWLEDGE – Wissen fragen</title>
-  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link rel="stylesheet" href="assets/css/style.css?v=0.6.4">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
-  <script src="assets/js/config.js" defer></script>
-  <script src="assets/js/app.js?v=0.6.4" defer></script>
-<script src="assets/js/menu.js?v=0.6.4" defer></script></head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f1e9">
+<meta name="description" content="WORLD KNOWLEDGE – eine reisende Bibliothek, die Wissen sammelt, Fragen beantwortet und Quellen bewahrt.">
+<title>WORLD KNOWLEDGE · Die reisende Bibliothek</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="assets/css/style.css?v=0.7.0">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
+<script src="assets/js/config.js" defer></script>
+<script src="assets/js/app.js?v=0.7.0" defer></script>
+<script src="assets/js/menu.js?v=0.7.0" defer></script>
+</head>
 <body>
-  <header class="topbar"><a class="brand" href="./" aria-label="WORLD KNOWLEDGE Startseite"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><div class="site-menu"><button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu-panel"><span class="menu-lines" aria-hidden="true"></span><span>Menü</span></button><nav class="menu-panel" id="site-menu-panel" hidden><a href="./">Fragen &amp; Startseite</a><a href="archive.html">Wissensarchiv</a><a href="sources.html">Transparenz &amp; Quellen</a><a href="reports.html">Prüfprotokoll</a><a href="impressum.html">Impressum</a></nav></div><span class="version">v0.6.3</span></header>
-  <main>
-    <section class="hero" id="suche">
-      <div class="eyebrow"><span class="pulse"></span> OFFENE WISSENSINFRASTRUKTUR</div>
-      <h1>Frage alles.<br><span>Wissen bleibt erhalten.</span></h1>
-      <p class="hero-copy">Stelle Fragen oder suche nach ganzen Sätzen. WORLD KNOWLEDGE durchsucht sein Archiv, ergänzt fehlende Informationen aus Wikipedia und erstellt eine Antwort mit Quellen.</p>
-      <form id="search-form" class="search-box" role="search">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg>
-        <input id="search-input" type="search" placeholder="Frage stellen oder Satz suchen …" autocomplete="off" aria-label="Frage oder Satz eingeben">
-        <button id="search-submit" type="submit">Fragen</button>
-      </form>
-      <div class="search-hint">Beispiel: „Warum ist der Himmel blau?“ oder „Die Geschichte des Römischen Reiches“</div>
-    </section>
-
-    <div id="ai-loading" class="loading-line hidden"><span class="loader"></span><span>Archiv und Wikipedia werden durchsucht. Die KI erstellt eine Antwort …</span></div>
-    <section class="ai-result hidden" id="ai-result" aria-live="polite">
-      <div class="ai-result-head"><span class="ai-label">WORLD KNOWLEDGE AI</span><span id="ai-source"></span></div>
-      <div id="ai-answer-text" class="markdown-content"></div>
-      <div class="ai-result-note" id="ai-answer-note"></div>
-      <div id="ai-sources-wrap" class="ai-sources-wrap hidden"><strong>Quellen</strong><div id="ai-sources" class="ai-sources"></div></div>
-    </section>
-
-    <section class="stats-grid" aria-label="Archivstatistik">
-      <article class="stat-card"><span class="stat-label">Gespeicherte Artikel</span><strong id="article-count">–</strong><span class="stat-note">Im zentralen Archiv</span></article>
-      
-      <article class="stat-card"><span class="stat-label">Letzte Sammlung</span><strong id="last-run">–</strong><span class="stat-note">Letzter erfolgreicher Lauf</span></article>
-    </section>
-
-    <section class="collector-panel" id="system">
-      <div class="collector-icon"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"></path><circle cx="12" cy="12" r="4"></circle></svg></div>
-      <div class="collector-copy"><div class="eyebrow">KONTINUIERLICHE DATENSAMMLUNG</div><h2>Starte die Sammlung und lass Wissen wachsen.</h2><p>Mit „Sammlung starten“ beginnt ein fortlaufender Prozess. Die Sammlung durchläuft systematisch 22 Wissensgebiete. Sie sammelt parallel aus deutscher und englischer Wikipedia sowie Wikidata, ergänzt NASA-Material bei passenden Wissenschaftsthemen und speichert neue Quellen im Archiv. Die Sammlung läuft, solange sie aktiviert und die Website im Vordergrund geöffnet ist. „Sammlung stoppen“ beendet sie.</p><div class="collector-status"><span class="status-dot" id="status-dot"></span><span id="collector-status">Verbindung wird geprüft …</span></div></div>
-      <button id="collect-button" class="primary-button" type="button">Jetzt sammeln</button>
-    </section>
-    <div class="archive-promo"><div><strong>Das gesamte Wissen im Archiv</strong><p>Artikel und nachvollziehbare Quellen an einem Ort.</p></div><a href="archive.html">Archiv öffnen</a></div>
-        <section class="notice"><strong>Transparenz &amp; Quellen</strong><p>Gesammelt werden ausschließlich Wissensartikel und Quellen. Besucherfragen werden nicht gespeichert. Jeder Eintrag wird einer Quelle und einem Themengebiet zugeordnet. Die KI kombiniert Archivwissen mit zusätzlicher Recherche, wenn Treffer fehlen. Die fortlaufende Sammlung läuft nur, solange sie aktiviert und die Website geöffnet ist. Browser können Hintergrundaktivitäten pausieren.</p></section>
-  </main>
-  <footer><a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><span>Offenes Wissen. Nachvollziehbare Quellen.</span><a href="impressum.html">Impressum</a><span>Version 0.6.4</span></footer>
-</body>
-</html>
+<header class="topbar">
+<a class="brand" href="./" aria-label="WORLD KNOWLEDGE Startseite"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a>
+<div class="site-menu"><button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu-panel"><span class="menu-lines" aria-hidden="true"></span><span>Menü</span></button>
+<nav class="menu-panel" id="site-menu-panel" hidden><a href="./">Fragen &amp; Startseite</a><a href="archive.html">Wissensarchiv</a><a href="sources.html">Transparenz &amp; Quellen</a><a href="reports.html">Prüfprotokoll</a><a href="impressum.html">Impressum</a></nav></div><span class="version">v0.7.0</span>
+</header>
+<main class="library-home">
+<section class="hero-library">
+<div class="hero-overline"><span class="overline-line"></span> EIN ARCHIV AUF REISEN <span class="overline-line"></span></div>
+<div class="hero-columns"><div class="hero-title-side"><p class="hero-small-label">WELT · WISSEN · ZEIT</p><h1>Ein Ort für<br><em>gute Fragen.</em></h1><div class="hero-rule"></div><p class="hero-deck">Wissen wird gesammelt, geprüft, verbunden und bewahrt. Jede Reise beginnt mit einer Frage.</p></div>
+<div class="hero-note"><span class="note-number">01 / DER GEDANKE</span><p>Eine Bibliothek muss nicht stillstehen. Sie kann reisen, neue Quellen finden, Zusammenhänge entdecken und ihre Sammlung Stück für Stück erweitern.</p><a href="archive.html" class="quiet-link">Im Archiv stöbern <span>↗</span></a></div></div>
+<div class="library-search-area"><div class="search-label"><span>FRAGE AN DIE BIBLIOTHEK</span><span>DE · EN · QUELLEN</span></div><form id="search-form" class="search-box" role="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg><input id="search-input" type="search" placeholder="Was möchtest du verstehen?" autocomplete="off" aria-label="Frage oder Satz eingeben"><button id="search-submit" type="submit">Antwort suchen <span>↗</span></button></form><p class="search-hint">Zum Beispiel: Warum wandern Zugvögel? · Wie entstand die Seidenstraße?</p></div>
+</section>
+<div id="ai-loading" class="loading-line hidden"><span class="loader"></span><span>Quellen werden gelesen. Die Antwort wird zusammengestellt …</span></div>
+<section class="ai-result hidden" id="ai-result" aria-live="polite"><div class="ai-result-head"><span class="ai-label">AUS DER BIBLIOTHEK</span><span id="ai-source"></span></div><div id="ai-answer-text" class="markdown-content"></div><div class="ai-result-note" id="ai-answer-note"></div><div id="ai-sources-wrap" class="ai-sources-wrap hidden"><strong>Gelesene Quellen</strong><div id="ai-sources" class="ai-sources"></div></div></section>
+<section class="library-overview"><div class="overview-heading"><div><span class="section-kicker">DAS ARCHIV</span><h2>Ein wachsender Bestand.</h2></div><a href="archive.html" class="quiet-link">Alle Einträge ansehen ↗</a></div><div class="stats-grid" aria-label="Archivstatistik"><article class="stat-card"><span class="stat-label">Bewahrte Einträge</span><strong id="article-count">–</strong><span class="stat-note">Im zentralen Archiv</span></article><article class="stat-card"><span class="stat-label">Letzte Sammelreise</span><strong id="last-run">–</strong><span class="stat-note">Letzter erfolgreicher Lauf</span></article></div></section>
+<section class="collector-panel" id="system"><div class="collector-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12"></path><circle cx="12" cy="12" r="4"></circle></svg></div><div class="collector-copy"><div class="eyebrow">DIE SAMMELREISE</div><h2>Die Bibliothek ist unterwegs.</h2><p>Sie erkundet 22 Wissensgebiete, besucht deutsch- und englischsprachige Wikipedia, Wikidata und Wikimedia Commons. Passende wissenschaftliche Themen führen auch zu NASA-Material. Neue Fundstücke werden mit Quellenangaben ins Archiv aufgenommen.</p><div class="collector-status"><span class="status-dot" id="status-dot"></span><span id="collector-status">Verbindung wird geprüft …</span></div></div><button id="collect-button" class="primary-button" type="button">Sammlung starten</button></section>
+<section class="archive-invitation"><div class="invitation-mark">W</div><div><span class="section-kicker">REGAL FÜR REGAL</span><h2>Ein Gedanke führt zum nächsten.</h2><p>Artikel, Bilder, Dokumente und Herkunftsangaben. Nicht alles wissen, sondern weiter suchen können.</p></div><a href="archive.html" class="quiet-link">Das Archiv öffnen ↗</a></section>
+<section class="library-note"><span class="section-kicker">WIE DIE BIBLIOTHEK ARBEITET</span><h2>Wissen braucht Herkunft.</h2><p>Antworten werden aus Archivmaterial und weiteren Quellen zusammengestellt. Wo die Belege nicht reichen, soll Unsicherheit sichtbar bleiben. Besucherfragen werden nicht als Archivartikel gespeichert. Quellen und Einträge können gemeldet werden, damit sie überprüft werden.</p><div class="note-links"><a href="sources.html">Quellen &amp; Transparenz</a><a href="reports.html">Prüfprotokoll</a></div></section>
+</main>
+<footer><a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><span>Ein Ort für gute Fragen.</span><a href="impressum.html">Impressum</a><span>Version 0.7.0</span></footer>
+</body></html>
