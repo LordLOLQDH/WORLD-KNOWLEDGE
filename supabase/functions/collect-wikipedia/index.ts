@@ -123,6 +123,20 @@ async function groqAnswer(query: string, articles: any[], apiKey: string, ipHash
 }
 
 
+async function collectCommons(topic: string) {
+  const u=new URL("https://commons.wikimedia.org/w/api.php");
+  u.search=new URLSearchParams({action:"query",generator:"search",gsrsearch:"filetype:bitmap "+topic,gsrnamespace:"6",gsrlimit:"12",prop:"imageinfo",iiprop:"url|extmetadata",iiurlwidth:"700",format:"json",formatversion:"2"}).toString();
+  const h={"Accept":"application/json","User-Agent":"WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)"};
+  const res=await fetch(u,{headers:h,signal:AbortSignal.timeout(18000)});
+  if(!res.ok)throw new Error("Wikimedia Commons HTTP "+res.status);
+  const pages=(await res.json())?.query?.pages||[];
+  const strip=(s:any)=>String(s||"").replace(/<[^>]*>/g,"").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').trim().slice(0,3500);
+  return pages.filter((p:any)=>p?.title&&p.imageinfo?.[0]?.thumburl).map((p:any)=>{
+    const i=p.imageinfo[0],m=i.extmetadata||{},license=strip(m.LicenseShortName?.value||"Unbekannt"),author=strip(m.Artist?.value||"");
+    return {title:String(p.title).replace(/^File:/,"").slice(0,500),extract:strip(m.ImageDescription?.value||p.title),source_name:"Wikimedia Commons",source_language:"en",source_url:"https://commons.wikimedia.org/wiki/"+encodeURIComponent(p.title.replace(/ /g,"_")),license,license_url:String(m.LicenseUrl?.value||"").slice(0,1000),media_type:"image",image_url:String(i.url||""),thumbnail_url:String(i.thumburl||""),author,metadata_json:{width:i.width||null,height:i.height||null},category:topic,topic_key:topic.toLowerCase(),collected_at:new Date().toISOString()};
+  });
+}
+
 // Supplementary source collectors run concurrently with the primary German Wikipedia batch.
 async function collectEnglishWiki(topic: string) {
   const api = new URL("https://en.wikipedia.org/w/api.php");
@@ -290,7 +304,7 @@ Deno.serve(async (req: Request) => {
     if(!dr.ok) throw new Error("Wikipedia DE Artikel HTTP "+dr.status);
     const deRows=(((await dr.json())?.query?.pages)||[]).filter((p:any)=>p&&p.title&&p.fullurl).map((p:any)=>({title:String(p.title).slice(0,500),extract:String(p.extract||"").slice(0,18000),source_name:"Wikipedia (Deutsch)",source_language:"de",source_url:String(p.fullurl),license:"CC BY-SA 4.0",license_url:"https://creativecommons.org/licenses/by-sa/4.0/",category:selected[0],topic_key:selected[1],collected_at:new Date().toISOString()}));
     const nasaRelevant=["Naturwissenschaften","Physik","Astronomie","Umwelt"].includes(selected[0]);
-    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),...(nasaRelevant?[collectNasa(selected[0])]:[])]);
+    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),collectCommons(selected[0]),...(nasaRelevant?[collectNasa(selected[0])]:[])]);
     const sourceRows=sourceResults.flatMap((r:any)=>r.status==="fulfilled"?r.value:[]);
     sourceResults.forEach((r:any)=>{if(r.status==="rejected")console.warn("Secondary source collector failed:",r.reason?.message||r.reason);});
     const rows=[...deRows,...sourceRows];
@@ -303,8 +317,8 @@ Deno.serve(async (req: Request) => {
     const {count,error:countError}=await admin.from("world_knowledge_articles").select("id",{count:"exact",head:true});
     if(countError)throw countError;
     await admin.from("world_knowledge_collector_state").update({total_saved:Number(count||0)}).eq("id",true);
-    await admin.from("world_knowledge_collector_runs").update({status:"completed",saved_count:newRows.length,message:"Thema: "+selected[0]+" · Quellen: DE-Wikipedia, EN-Wikipedia, Wikidata, NASA",finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
-    return json({status:"completed",saved:newRows.length,processed:unique.length,total:Number(count||0),category:selected[0],sources:nasaRelevant?["Wikipedia DE","Wikipedia EN","Wikidata","NASA"]:["Wikipedia DE","Wikipedia EN","Wikidata"]});
+    await admin.from("world_knowledge_collector_runs").update({status:"completed",saved_count:newRows.length,message:"Thema: "+selected[0]+" · Quellen: DE-Wikipedia, EN-Wikipedia, Wikidata, Wikimedia Commons, NASA",finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
+    return json({status:"completed",saved:newRows.length,processed:unique.length,total:Number(count||0),category:selected[0],sources:nasaRelevant?["Wikipedia DE","Wikipedia EN","Wikidata","Wikimedia Commons","NASA"]:["Wikipedia DE","Wikipedia EN","Wikidata","Wikimedia Commons"]});
   }catch(error){
     const message=error instanceof Error?error.message:"Unbekannter Fehler";
     await admin.from("world_knowledge_collector_runs").update({status:"failed",message:message.slice(0,500),finished_at:new Date().toISOString()}).eq("id",runResult.data.id);
