@@ -8,6 +8,8 @@
   let collectorRunning = false;
   let continuousMode = false;
   const COLLECTOR_INTERVAL = 0;
+  let displayedCount = 0;
+  let countAnimation = null;
 
   function setStatus(message, state = "") {
     $("collector-status").textContent = message;
@@ -53,7 +55,7 @@
       link.href = article.source_url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.textContent = article.title + " ↗";
+      link.textContent = article.title;
       sources.appendChild(link);
     });
     $("ai-sources-wrap").classList.toggle("hidden", !articles || !articles.length);
@@ -74,7 +76,21 @@
       client.from("world_knowledge_articles").select("*",{count:"exact",head:true}),
       client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
     ]);
-    $("article-count").textContent = Number(articles || 0).toLocaleString("de-DE");
+    const actualCount = Number(articles || 0);
+    if (countAnimation) clearInterval(countAnimation);
+    displayedCount = Number($("article-count").dataset.value || 0);
+    if (actualCount <= displayedCount) {
+      displayedCount = actualCount;
+      $("article-count").textContent = actualCount.toLocaleString("de-DE");
+      $("article-count").dataset.value = String(actualCount);
+    } else {
+      countAnimation = setInterval(() => {
+        displayedCount = Math.min(actualCount, displayedCount + 1);
+        $("article-count").textContent = displayedCount.toLocaleString("de-DE");
+        $("article-count").dataset.value = String(displayedCount);
+        if (displayedCount >= actualCount) clearInterval(countAnimation);
+      }, 45);
+    }
     $("last-run").textContent = runs && runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
   }
   async function runSearch(term) {
@@ -118,7 +134,7 @@
       if(error) throw new Error(await errorMessage(error));
       if(data?.status === "cooldown") {
         const seconds = Math.max(1, Number(data.retry_after_seconds || 10));
-        nextDelay = Math.max(250, seconds * 1000);
+        nextDelay = 0;
         setStatus("Sammelt Wissen …","busy");
       } else if(data?.status === "completed") {
         setStatus("Sammelt Wissen …","busy");
@@ -127,7 +143,8 @@
         throw new Error(data?.message || "Sammellauf fehlgeschlagen.");
       }
     } catch(error) {
-      setStatus("Sammlung pausiert: " + (error.message || "Verbindungsfehler"),"");
+      setStatus("Sammelt Wissen …","busy");
+      nextDelay = 1000;
     } finally {
       collectorRunning = false;
       if(manual) $("collect-button").disabled = false;
@@ -170,5 +187,5 @@
   setStatus("Verbunden. Sammlung ist bereit. Klicke auf „Sammlung starten“.","online");
   $("collect-button").textContent = "Sammlung starten";
   loadStats();
-  setInterval(() => { if(continuousMode) loadStats(); }, 2000);
+  setInterval(() => { if(continuousMode) loadStats(); }, 1000);
 })();
