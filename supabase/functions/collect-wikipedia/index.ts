@@ -150,7 +150,7 @@ async function collectFbiVault() {
     if(!pr.ok)return null;
     const page=await pr.text();
     const pdfs=[...page.matchAll(/href=["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]).filter(u=>/\.pdf(?:$|\?)/i.test(u)||/at_download\/file/i.test(u)).slice(0,5);
-    const meta=(name:string)=>{const m=page.match(new RegExp('<meta[^>]+(?:name|property)=["']+[^"']*'+name+'[^"']*["'][^>]+content=["']([^"']+)["'][^>]*>','i'));return m?.[1]||"";};
+    const meta=(name:string)=>{const m=page.match(new RegExp("<meta[^>]+(?:name|property)=\"[^\"]*"+name+"[^\"]*\"[^>]+content=\"([^\"]+)\"[^>]*>","i"));return m?.[1]||"";};
     const desc=strip(meta("description")||meta("og:description")||"FBI Vault freigegebene Akten. Originaldokumente direkt beim FBI.");
     const image=meta("og:image");
     if(!pdfs.length)return null;
