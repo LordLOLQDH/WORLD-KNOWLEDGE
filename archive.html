@@ -6,25 +6,26 @@
   <meta name="theme-color" content="#f7f9fc">
   <title>Archiv – WORLD KNOWLEDGE</title>
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
-  <link rel="stylesheet" href="assets/css/style.css?v=0.7.0">
+  <link rel="stylesheet" href="assets/css/style.css?v=0.8.0">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.6/dist/purify.min.js"></script>
   <script src="assets/js/config.js" defer></script>
-  <script src="assets/js/archive.js?v=0.7.0" defer></script>
-<script src="assets/js/menu.js?v=0.7.0" defer></script></head>
+  <script src="assets/js/archive.js?v=0.8.0" defer></script>
+<script src="assets/js/menu.js?v=0.8.0" defer></script></head>
 <body>
-  <header class="topbar"><a class="brand" href="./" aria-label="WORLD KNOWLEDGE Startseite"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><div class="site-menu"><button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu-panel"><span class="menu-lines" aria-hidden="true"></span><span>Menü</span></button><nav class="menu-panel" id="site-menu-panel" hidden><a href="./">Fragen &amp; Startseite</a><a href="archive.html">Wissensarchiv</a><a href="sources.html">Transparenz &amp; Quellen</a><a href="reports.html">Prüfprotokoll</a><a href="impressum.html">Impressum</a></nav></div><span class="version">v0.7.0</span></header>
+  <header class="topbar"><a class="brand" href="./" aria-label="WORLD KNOWLEDGE Startseite"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><div class="site-menu"><button class="menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="site-menu-panel"><span class="menu-lines" aria-hidden="true"></span><span>Menü</span></button><nav class="menu-panel" id="site-menu-panel" hidden><a href="./">Fragen &amp; Startseite</a><a href="archive.html">Wissensarchiv</a><a href="sources.html">Transparenz &amp; Quellen</a><a href="reports.html">Prüfprotokoll</a><a href="impressum.html">Impressum</a></nav></div><span class="version">v0.8.0</span></header>
   <main>
-    <section class="archive-hero"><div class="eyebrow">ZENTRALES WISSENSARCHIV</div><h1>Gesammeltes <span>Wissen.</span></h1><p>Hier liegen ausschließlich gesammelte Wissensartikel und Wissens-Metadaten. Jeder Eintrag ist einem Themengebiet zugeordnet und mit seiner Originalquelle gespeichert.</p></section>
+    <section class="archive-hero shelf-hero"><div class="eyebrow">ZENTRALES WISSENSARCHIV</div><h1>Gesammeltes <span>Wissen.</span></h1><p>Hier liegen ausschließlich gesammelte Wissensartikel und Wissens-Metadaten. Jeder Eintrag ist einem Themengebiet zugeordnet und mit seiner Originalquelle gespeichert.</p></section>
     <section class="archive-controls">
       <form id="archive-search-form" class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg><input id="archive-search" type="search" placeholder="Archiv durchsuchen …" aria-label="Archiv durchsuchen"><button type="submit">Suchen</button></form>
       <div class="archive-filter-row"><label>Medientyp<select id="archive-media-filter"><option value="all">Alle Inhalte</option><option value="article">Artikel</option><option value="image">Bilder</option><option value="document">PDFs &amp; Dokumente</option><option value="video">Videos</option><option value="audio">Audio</option><option value="data">Daten</option></select></label><label>Themengebiet<select id="archive-category-filter"><option value="all">Alle Themen</option></select></label><button id="archive-filter-reset" class="secondary-button" type="button">Filter zurücksetzen</button></div>
     </section>
     <div class="archive-summary"><span id="archive-count">Archiv wird geladen …</span><span id="archive-status"></span></div>
-    <section id="archive-items" class="archive-list"><div class="empty-state"><div class="loader"></div>Archiv wird geladen …</div></section>
+    <section id="archive-items" class="archive-bookshelf"><div class="empty-state"><div class="loader"></div>Archiv wird geladen …</div></section>
     <button id="archive-more" class="secondary-button hidden" type="button">Weitere Einträge laden</button>
+    <div class="book-modal" id="book-modal" aria-hidden="true"><div class="book-modal-backdrop" data-book-close></div><section class="book-open-shell" role="dialog" aria-modal="true" aria-labelledby="opened-book-title"><button class="book-close" type="button" data-book-close aria-label="Buch schließen">×</button><div class="book-opening"><div class="book-page book-page-left"><div class="book-cover"><span class="cover-mark">W</span><span class="cover-category" id="opened-book-category"></span><h2 id="opened-book-title"></h2><p id="opened-book-cover-text"></p><div class="cover-foot">WORLD KNOWLEDGE · ARCHIV</div></div></div><div class="book-page book-page-right"><div class="book-page-content"><div id="opened-book-media"></div><div id="opened-book-text" class="markdown-content"></div><div class="opened-book-meta" id="opened-book-meta"></div><div class="opened-book-links" id="opened-book-links"></div><button class="report-button book-report-trigger" type="button">Eintrag melden</button><div class="report-form book-report-form hidden"><label>Grund der Meldung</label><select class="report-type"><option value="wrong">Falsche Information</option><option value="fake">Fälschung</option><option value="misinformation">Desinformation</option><option value="source_issue">Quellenproblem</option><option value="other">Sonstiges</option></select><label>Was ist falsch? Bitte kurz begründen.</label><textarea class="report-description" minlength="10" maxlength="1200" placeholder="Beschreibung des Problems (mindestens 10 Zeichen)"></textarea><button class="report-submit" type="button">Meldung senden</button><div class="report-feedback"></div></div></div></div></div></section></div>
   </main>
-  <footer><a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><span>Offenes Wissen. Nachvollziehbare Quellen.</span><a href="impressum.html">Impressum</a><span>Version 0.7.0</span></footer>
+  <footer><a class="brand footer-brand" href="./"><span class="brand-mark">W</span><span>WORLD <strong>KNOWLEDGE</strong></span></a><span>Offenes Wissen. Nachvollziehbare Quellen.</span><a href="impressum.html">Impressum</a><span>Version 0.8.0</span></footer>
 </body>
 </html>
