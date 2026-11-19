@@ -219,7 +219,8 @@ Deno.serve(async (req: Request) => {
         .from("world_knowledge_articles")
         .select("id,title,extract,source_url,collected_at,source_name,license,media_type,image_url,thumbnail_url,review_status")
         .textSearch("search_vector", queryText, { type: "websearch", config: "german" })
-        .eq("review_status","published")\n        .limit(10);
+        .eq("review_status","published")
+        .limit(10);
       if (searchError) throw searchError;
 
       let articles = stored ?? [];
