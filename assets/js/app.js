@@ -75,27 +75,32 @@
   async function loadStats() {
     if (!client || statsLoading) return;
     statsLoading = true;
-    const [{count:articles}, {data:runs}] = await Promise.all([
-      client.from("world_knowledge_articles").select("*",{count:"exact",head:true}),
-      client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
-    ]);
-    const actualCount = Number(articles || 0);
-    targetCount = actualCount;
-    if (!countAnimation && displayedCount !== targetCount) {
-      countAnimation = setInterval(() => {
-        displayedCount = displayedCount < targetCount
-          ? Math.min(targetCount, displayedCount + 1)
-          : Math.max(targetCount, displayedCount - 1);
-        $("article-count").textContent = displayedCount.toLocaleString("de-DE");
-        $("article-count").dataset.value = String(displayedCount);
-        if (displayedCount === targetCount) {
-          clearInterval(countAnimation);
-          countAnimation = null;
-        }
-      }, 35);
+    try {
+      const [{count:articles}, {data:runs}] = await Promise.all([
+        client.from("world_knowledge_articles").select("*",{count:"exact",head:true}),
+        client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
+      ]);
+      const actualCount = Number(articles || 0);
+      targetCount = actualCount;
+      if (!countAnimation && displayedCount !== targetCount) {
+        countAnimation = setInterval(() => {
+          displayedCount = displayedCount < targetCount
+            ? Math.min(targetCount, displayedCount + 1)
+            : Math.max(targetCount, displayedCount - 1);
+          $("article-count").textContent = displayedCount.toLocaleString("de-DE");
+          $("article-count").dataset.value = String(displayedCount);
+          if (displayedCount === targetCount) {
+            clearInterval(countAnimation);
+            countAnimation = null;
+          }
+        }, 35);
+      }
+      if(runs) $("last-run").textContent = runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
+    } catch(error) {
+      console.warn("Stats refresh failed:", error);
+    } finally {
+      statsLoading = false;
     }
-    $("last-run").textContent = runs && runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
-    statsLoading = false;
   }
   async function runSearch(term) {
     $("search-submit").disabled = true;
