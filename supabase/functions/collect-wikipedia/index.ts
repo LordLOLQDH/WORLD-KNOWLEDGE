@@ -137,6 +137,28 @@ async function collectCommons(topic: string) {
   });
 }
 
+async function collectFbiVault() {
+  const h={"Accept":"text/html","User-Agent":"WORLD-KNOWLEDGE/1.0 (https://github.com/LordLOLQDH/WORLD-KNOWLEDGE)"};
+  const res=await fetch("https://vault.fbi.gov/",{headers:h,signal:AbortSignal.timeout(15000)});
+  if(!res.ok)throw new Error("FBI Vault HTTP "+res.status);
+  const html=await res.text();
+  const strip=(s:string)=>s.replace(/<[^>]*>/g," ").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&#39;/g,"'").replace(/&quot;/g,'"').replace(/\s+/g," ").trim().slice(0,3000);
+  const links=[...html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)].map(m=>({href:String(m[1]),title:strip(m[2])})).filter(x=>x.title.length>4&&x.href.startsWith("/")&&!["/","/search","/browse-files-list","/reading-room-index","/about-vault","/all-files"].some(p=>x.href.startsWith(p))).slice(0,8);
+  const items=await Promise.allSettled(links.map(async item=>{
+    const pageUrl=new URL(item.href,"https://vault.fbi.gov/").href;
+    const pr=await fetch(pageUrl,{headers:h,signal:AbortSignal.timeout(10000)});
+    if(!pr.ok)return null;
+    const page=await pr.text();
+    const pdfs=[...page.matchAll(/href=["']([^"']+)["'][^>]*>/gi)].map(m=>m[1]).filter(u=>/\.pdf(?:$|\?)/i.test(u)||/at_download\/file/i.test(u)).slice(0,5);
+    const meta=(name:string)=>{const m=page.match(new RegExp('<meta[^>]+(?:name|property)=["']+[^"']*'+name+'[^"']*["'][^>]+content=["']([^"']+)["'][^>]*>','i'));return m?.[1]||"";};
+    const desc=strip(meta("description")||meta("og:description")||"FBI Vault freigegebene Akten. Originaldokumente direkt beim FBI.");
+    const image=meta("og:image");
+    if(!pdfs.length)return null;
+    return {title:item.title,extract:desc,source_name:"FBI Vault",source_language:"en",source_url:pageUrl,license:"FBI Vault document; check item rights",license_url:"https://vault.fbi.gov/about-vault",media_type:"pdf",file_url:new URL(pdfs[0],pageUrl).href,mime_type:"application/pdf",image_url:image?new URL(image,pageUrl).href:null,thumbnail_url:image?new URL(image,pageUrl).href:null,metadata_json:{pdf_links:pdfs.map((u:string)=>new URL(u,pageUrl).href)},category:"Geschichte",topic_key:"fbi-vault",collected_at:new Date().toISOString()};
+  }));
+  return items.flatMap(x=>x.status==="fulfilled"&&x.value?[x.value]:[]);
+}
+
 // Supplementary source collectors run concurrently with the primary German Wikipedia batch.
 async function collectEnglishWiki(topic: string) {
   const api = new URL("https://en.wikipedia.org/w/api.php");
@@ -304,7 +326,7 @@ Deno.serve(async (req: Request) => {
     if(!dr.ok) throw new Error("Wikipedia DE Artikel HTTP "+dr.status);
     const deRows=(((await dr.json())?.query?.pages)||[]).filter((p:any)=>p&&p.title&&p.fullurl).map((p:any)=>({title:String(p.title).slice(0,500),extract:String(p.extract||"").slice(0,18000),source_name:"Wikipedia (Deutsch)",source_language:"de",source_url:String(p.fullurl),license:"CC BY-SA 4.0",license_url:"https://creativecommons.org/licenses/by-sa/4.0/",category:selected[0],topic_key:selected[1],collected_at:new Date().toISOString()}));
     const nasaRelevant=["Naturwissenschaften","Physik","Astronomie","Umwelt"].includes(selected[0]);
-    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),collectCommons(selected[0]),...(nasaRelevant?[collectNasa(selected[0])]:[])]);
+    const sourceResults=await Promise.allSettled([collectEnglishWiki(selected[0]),collectWikidata(selected[0]),collectCommons(selected[0]),...(Number(topicIndex||0)%5===0?[collectFbiVault()]:[]),...(nasaRelevant?[collectNasa(selected[0])]:[])]);
     const sourceRows=sourceResults.flatMap((r:any)=>r.status==="fulfilled"?r.value:[]);
     sourceResults.forEach((r:any)=>{if(r.status==="rejected")console.warn("Secondary source collector failed:",r.reason?.message||r.reason);});
     const rows=[...deRows,...sourceRows];
