@@ -57,7 +57,9 @@
       link.href = article.source_url;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      const number = sources.children.length + 1;\n      if (article.thumbnail_url || article.image_url) { const img=document.createElement("img"); img.className="ai-source-thumb"; img.loading="lazy"; img.alt=""; img.src=article.thumbnail_url||article.image_url; link.appendChild(img); }\n      const label=document.createElement("span"); label.textContent="["+number+"] "+article.source_name+" · "+article.title; link.appendChild(label); link.className="ai-source-link";\n      link.className = "ai-source-link";
+      const number = sources.children.length + 1;
+      if (article.thumbnail_url || article.image_url) { const img=document.createElement("img"); img.className="ai-source-thumb"; img.loading="lazy"; img.alt=""; img.src=article.thumbnail_url||article.image_url; link.appendChild(img); }\n      const label=document.createElement("span"); label.textContent="["+number+"] "+article.source_name+" · "+article.title; link.appendChild(label); link.className="ai-source-link";
+      link.className = "ai-source-link";
       sources.appendChild(link);
     });
     $("ai-sources-wrap").classList.toggle("hidden", !articles || !articles.length);
