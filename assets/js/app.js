@@ -10,6 +10,8 @@
   const COLLECTOR_INTERVAL = 0;
   let displayedCount = 0;
   let countAnimation = null;
+  let targetCount = 0;
+  let statsLoading = false;
 
   function setStatus(message, state = "") {
     $("collector-status").textContent = message;
@@ -71,27 +73,29 @@
     return message;
   }
   async function loadStats() {
-    if (!client) return;
+    if (!client || statsLoading) return;
+    statsLoading = true;
     const [{count:articles}, {data:runs}] = await Promise.all([
       client.from("world_knowledge_articles").select("*",{count:"exact",head:true}),
       client.from("world_knowledge_collector_runs").select("finished_at").eq("status","completed").order("finished_at",{ascending:false}).limit(1)
     ]);
     const actualCount = Number(articles || 0);
-    if (countAnimation) clearInterval(countAnimation);
-    displayedCount = Number($("article-count").dataset.value || 0);
-    if (actualCount <= displayedCount) {
-      displayedCount = actualCount;
-      $("article-count").textContent = actualCount.toLocaleString("de-DE");
-      $("article-count").dataset.value = String(actualCount);
-    } else {
+    targetCount = actualCount;
+    if (!countAnimation && displayedCount !== targetCount) {
       countAnimation = setInterval(() => {
-        displayedCount = Math.min(actualCount, displayedCount + 1);
+        displayedCount = displayedCount < targetCount
+          ? Math.min(targetCount, displayedCount + 1)
+          : Math.max(targetCount, displayedCount - 1);
         $("article-count").textContent = displayedCount.toLocaleString("de-DE");
         $("article-count").dataset.value = String(displayedCount);
-        if (displayedCount >= actualCount) clearInterval(countAnimation);
-      }, 45);
+        if (displayedCount === targetCount) {
+          clearInterval(countAnimation);
+          countAnimation = null;
+        }
+      }, 35);
     }
     $("last-run").textContent = runs && runs[0] ? dateLabel(runs[0].finished_at) : "Noch nicht";
+    statsLoading = false;
   }
   async function runSearch(term) {
     $("search-submit").disabled = true;
@@ -133,8 +137,8 @@
       const {data,error} = await client.functions.invoke("world-knowledge-collector",{body:{action:"collect"}});
       if(error) throw new Error(await errorMessage(error));
       if(data?.status === "cooldown") {
-        const seconds = Math.max(1, Number(data.retry_after_seconds || 10));
-        nextDelay = 0;
+        const seconds = Math.max(1, Number(data.retry_after_seconds || 2));
+        nextDelay = seconds * 1000;
         setStatus("Sammelt Wissen …","busy");
       } else if(data?.status === "completed") {
         setStatus("Sammelt Wissen …","busy");
@@ -187,5 +191,5 @@
   setStatus("Verbunden. Sammlung ist bereit. Klicke auf „Sammlung starten“.","online");
   $("collect-button").textContent = "Sammlung starten";
   loadStats();
-  setInterval(() => { if(continuousMode) loadStats(); }, 1000);
+  setInterval(() => { if(continuousMode) loadStats(); }, 2500);
 })();
