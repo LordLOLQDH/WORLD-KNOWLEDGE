@@ -146,7 +146,7 @@
         nextDelay = seconds * 1000;
         setStatus("Sammelt Wissen …","busy");
       } else if(data?.status === "completed") {
-        setStatus("Sammelt Wissen …","busy");
+        setStatus("+" + Number(data.saved||0) + " neu · " + Number(data.processed||0) + " verarbeitet · " + String(data.category||"Thema") + " · sammelt weiter","busy");
         await loadStats();
       } else {
         throw new Error(data?.message || "Sammellauf fehlgeschlagen.");
