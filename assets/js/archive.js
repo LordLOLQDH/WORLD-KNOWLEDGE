@@ -11,7 +11,7 @@
     if(categoryFilter!=="all")q=q.eq("category",categoryFilter);
     if(mediaFilter==="article")q=q.eq("media_type","article");
     else if(mediaFilter==="image")q=q.or("media_type.eq.image,image_url.not.is.null,thumbnail_url.not.is.null");
-    else if(mediaFilter==="document")q=q.or("media_type.eq.document,file_url.not.is.null");
+    else if(mediaFilter==="document")q=q.or("media_type.eq.document,media_type.eq.pdf,file_url.not.is.null");
     else if(mediaFilter==="video")q=q.eq("media_type","video");
     else if(mediaFilter==="audio")q=q.eq("media_type","audio");
     else if(mediaFilter==="data")q=q.eq("media_type","data");
